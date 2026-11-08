@@ -164,3 +164,25 @@ export interface BroadcastDto {
   createdAt: string;
   finishedAt: string | null;
 }
+
+export interface PeriodStatsDto {
+  sales: { count: number; total: number };
+  topups: { count: number; total: number };
+  newCustomers: number;
+}
+
+export interface DashboardDto {
+  today: PeriodStatsDto;
+  week: PeriodStatsDto;
+  month: PeriodStatsDto;
+  pending: { topups: number; orders: number; tickets: number };
+  lowStock: { variantId: number; line: string; stock: number }[];
+}
+
+export interface AdminDto {
+  telegramId: number;
+  name: string | null;
+  isOwner: boolean;
+}
+
+export const addAdminInput = z.object({ telegramId: z.number().int().positive() });

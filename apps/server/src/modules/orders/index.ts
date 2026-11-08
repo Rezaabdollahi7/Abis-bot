@@ -1,5 +1,5 @@
 import { type RequiredFieldName, type Toman, toman } from '@abis/shared';
-import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../../db/client.js';
 import type { Cipher } from '../../lib/cipher.js';
@@ -484,4 +484,24 @@ export async function refundWarranty(
     });
     return { order, balance: await getBalance(tx, order.customerId) };
   });
+}
+
+/** Orders placed since `since` that were not rejected: count and gross Toman. */
+export async function salesSince(db: Db, since: Date): Promise<{ count: number; total: Toman }> {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)`.mapWith(Number),
+      total: sql<number>`coalesce(sum(${orders.totalToman}), 0)`.mapWith(Number),
+    })
+    .from(orders)
+    .where(and(gte(orders.createdAt, since), ne(orders.status, 'rejected')));
+  return { count: row?.count ?? 0, total: toman(row?.total ?? 0) };
+}
+
+export async function countQueuedOrders(db: Db): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(orders)
+    .where(eq(orders.status, 'queued'));
+  return row?.n ?? 0;
 }

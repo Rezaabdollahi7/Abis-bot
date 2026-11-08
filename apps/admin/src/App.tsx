@@ -4,6 +4,7 @@ import { ApiRequestError, apiFetch } from './api';
 import { AuditPage } from './audit/AuditPage';
 import { BroadcastPage } from './broadcast/BroadcastPage';
 import { CatalogPage } from './catalog/CatalogPage';
+import { DashboardPage } from './dashboard/DashboardPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { SettingsPage } from './settings/SettingsPage';
@@ -19,6 +20,7 @@ type State =
   | { kind: 'ready'; me: MeResponse };
 
 const tabs = [
+  { id: 'dashboard', label: 'داشبورد', Page: DashboardPage },
   { id: 'topups', label: 'واریزها', Page: TopupsPage },
   { id: 'orders', label: 'سفارش‌ها', Page: OrdersPage },
   { id: 'tickets', label: 'تیکت‌ها', Page: TicketsPage },
@@ -31,8 +33,8 @@ const tabs = [
 type TabId = (typeof tabs)[number]['id'];
 
 function Panel(props: { me: MeResponse }) {
-  const [tab, setTab] = useState<TabId>('topups');
-  const Page = tabs.find((t) => t.id === tab)?.Page ?? TopupsPage;
+  const [tab, setTab] = useState<TabId>('dashboard');
+  const Page = tabs.find((t) => t.id === tab)?.Page ?? DashboardPage;
   return (
     <>
       <header className="top">
@@ -53,7 +55,7 @@ function Panel(props: { me: MeResponse }) {
           </button>
         ))}
       </nav>
-      <Page />
+      <Page goTo={(id: string) => setTab(id as TabId)} />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
+import { recordAudit } from '../audit/index.js';
 import { admins } from './schema.js';
 
 export interface AdminIdentity {
@@ -19,7 +20,40 @@ export async function resolveAdmin(
 }
 
 export async function addAdmin(db: Db, telegramId: number, addedBy: number): Promise<void> {
-  await db.insert(admins).values({ telegramId, addedByTelegramId: addedBy }).onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .insert(admins)
+      .values({ telegramId, addedByTelegramId: addedBy })
+      .onConflictDoNothing()
+      .returning({ id: admins.id });
+    if (rows.length > 0) {
+      await recordAudit(tx, {
+        adminTelegramId: addedBy,
+        action: 'admin.add',
+        entityType: 'admin',
+        entityId: telegramId,
+      });
+    }
+  });
+}
+
+/** Removes an added admin. Owners are not in the table, so they can never be removed. */
+export async function removeAdmin(db: Db, telegramId: number, actor: number): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const rows = await tx.delete(admins).where(eq(admins.telegramId, telegramId)).returning();
+    if (rows.length === 0) return false;
+    await recordAudit(tx, {
+      adminTelegramId: actor,
+      action: 'admin.remove',
+      entityType: 'admin',
+      entityId: telegramId,
+    });
+    return true;
+  });
+}
+
+export async function listAddedAdmins(db: Db) {
+  return db.select().from(admins).orderBy(admins.id);
 }
 
 /** Everyone who should receive admin alerts: owners plus added admins. */
