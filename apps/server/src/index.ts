@@ -1,9 +1,13 @@
 import { serve } from '@hono/node-server';
 import { Bot } from 'grammy';
 import { Hono } from 'hono';
+import { connectDb, runMigrations } from './db/client.js';
 import { loadConfig } from './lib/config.js';
 
 const config = loadConfig();
+
+const { db } = connectDb(config.DATABASE_URL);
+await runMigrations(db);
 
 const bot = new Bot(config.BOT_TOKEN);
 // Placeholder until the real welcome flow (ROADMAP phase 1).
