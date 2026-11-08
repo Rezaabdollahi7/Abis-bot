@@ -1,4 +1,4 @@
-import { desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
 import { customers } from './schema.js';
@@ -131,4 +131,12 @@ export async function listBroadcastRecipients(db: Db): Promise<number[]> {
     .where(eq(customers.isBanned, false))
     .orderBy(customers.id);
   return rows.map((r) => r.telegramId);
+}
+
+export async function countCustomersSince(db: Db, since: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(customers)
+    .where(gte(customers.createdAt, since));
+  return row?.n ?? 0;
 }

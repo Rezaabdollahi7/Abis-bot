@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
 import { ticketMessages, tickets } from './schema.js';
@@ -167,4 +167,12 @@ function messageValues(m: MessageInput) {
     fileId: m.fileId ?? null,
     fileKind: m.fileId ? (m.fileKind ?? 'document') : null,
   };
+}
+
+export async function countTicketsAwaitingAdmin(db: Db): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(tickets)
+    .where(eq(tickets.status, 'awaiting_admin'));
+  return row?.n ?? 0;
 }

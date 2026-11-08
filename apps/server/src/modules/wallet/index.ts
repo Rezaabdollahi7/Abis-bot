@@ -1,5 +1,5 @@
 import { type Toman, toman } from '@abis/shared';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
 import { lockCustomer } from '../customers/index.js';
@@ -237,4 +237,24 @@ export async function createAdjustment(
     });
     return { entry, balance: toman(before + input.amount) };
   });
+}
+
+/** Approved top-ups decided since `since`: count and credited Toman. */
+export async function topupsSince(db: Db, since: Date): Promise<{ count: number; total: Toman }> {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)`.mapWith(Number),
+      total: sql<number>`coalesce(sum(${topups.approvedAmountToman}), 0)`.mapWith(Number),
+    })
+    .from(topups)
+    .where(and(eq(topups.status, 'approved'), gte(topups.handledAt, since)));
+  return { count: row?.count ?? 0, total: toman(row?.total ?? 0) };
+}
+
+export async function countPendingTopups(db: Db): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(topups)
+    .where(eq(topups.status, 'pending'));
+  return row?.n ?? 0;
 }

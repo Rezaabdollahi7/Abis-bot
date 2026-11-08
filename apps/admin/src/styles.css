@@ -299,3 +299,25 @@ progress {
   height: 6px;
   margin: 6px 0;
 }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 4px;
+}
+.stat strong {
+  font-size: 1.5rem;
+}
+.stat.attention {
+  background: color-mix(in srgb, #d9534f 18%, var(--surface));
+}

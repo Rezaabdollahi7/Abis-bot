@@ -2,6 +2,7 @@ import { type SettingsPatch, type SettingsResponse, bankCardInput } from '@abis/
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api';
 import { Field, Modal, Toggle } from '../ui';
+import { AdminsSection } from './AdminsSection';
 
 export function formatCardNumber(number: string): string {
   return number.replace(/(\d{4})(?=\d)/g, '$1-');
@@ -117,6 +118,8 @@ export function SettingsPage() {
           onChange={(requirePhone) => patch({ requirePhone })}
         />
       </article>
+
+      <AdminsSection />
 
       {addingCard && (
         <AddCardForm

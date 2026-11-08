@@ -26,6 +26,8 @@ const actionLabels: Record<string, string> = {
   'customer.unban': 'رفع مسدودیت',
   'customer.message': 'پیام مستقیم',
   'broadcast.send': 'پیام همگانی',
+  'admin.add': 'افزودن ادمین',
+  'admin.remove': 'حذف ادمین',
 };
 
 export function AuditPage() {
