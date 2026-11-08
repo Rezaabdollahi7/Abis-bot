@@ -2,6 +2,12 @@
 
 /** Header the Mini App sends on every request: `Authorization: tma <initData>`. */
 export const AUTH_SCHEME = 'tma';
+/** Header the browser panel sends after a /panel login: `Authorization: Session <token>`. */
+export const SESSION_SCHEME = 'Session';
+
+export interface LoginExchangeResponse {
+  sessionToken: string;
+}
 
 export interface MeResponse {
   telegramId: number;

@@ -1,5 +1,5 @@
-import { AUTH_SCHEME, type ApiError } from '@abis/shared';
-import { initData } from './telegram';
+import type { ApiError } from '@abis/shared';
+import { authorizationHeader } from './auth';
 
 export class ApiRequestError extends Error {
   constructor(
@@ -13,7 +13,8 @@ export class ApiRequestError extends Error {
 /** Calls the admin API with the Telegram initData attached. */
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  headers.set('Authorization', `${AUTH_SCHEME} ${initData()}`);
+  const auth = authorizationHeader();
+  if (auth) headers.set('Authorization', auth);
   if (init.body) headers.set('Content-Type', 'application/json');
   const res = await fetch(`/api${path}`, { ...init, headers });
   if (!res.ok) {
@@ -28,7 +29,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 /** Like apiFetch but returns the raw body (e.g. a receipt image). */
 export async function apiFetchBlob(path: string): Promise<Blob> {
   const res = await fetch(`/api${path}`, {
-    headers: { Authorization: `${AUTH_SCHEME} ${initData()}` },
+    headers: { Authorization: authorizationHeader() ?? '' },
   });
   if (!res.ok) throw new ApiRequestError(res.status, undefined);
   return res.blob();

@@ -10,11 +10,13 @@ import { OrdersPage } from './orders/OrdersPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { TicketsPage } from './tickets/TicketsPage';
 import { TopupsPage } from './topups/TopupsPage';
+import { authorizationHeader, clearSession, completeLinkLogin } from './auth';
 import { initData, telegramWebApp } from './telegram';
 
 type State =
   | { kind: 'loading' }
   | { kind: 'outside-telegram' }
+  | { kind: 'link-expired' }
   | { kind: 'denied' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; me: MeResponse };
@@ -66,19 +68,27 @@ export function App() {
   useEffect(() => {
     telegramWebApp()?.ready();
     telegramWebApp()?.expand();
-    if (!initData()) {
-      setState({ kind: 'outside-telegram' });
-      return;
-    }
-    apiFetch<MeResponse>('/me')
-      .then((me) => setState({ kind: 'ready', me }))
-      .catch((error: unknown) => {
+    void (async () => {
+      const linkOk = await completeLinkLogin();
+      if (!authorizationHeader()) {
+        setState({ kind: linkOk ? 'outside-telegram' : 'link-expired' });
+        return;
+      }
+      try {
+        setState({ kind: 'ready', me: await apiFetch<MeResponse>('/me') });
+      } catch (error) {
         if (error instanceof ApiRequestError && (error.status === 401 || error.status === 403)) {
-          setState({ kind: 'denied' });
+          if (!initData()) {
+            clearSession();
+            setState({ kind: error.status === 401 ? 'link-expired' : 'denied' });
+          } else {
+            setState({ kind: 'denied' });
+          }
         } else {
           setState({ kind: 'error', message: String(error) });
         }
-      });
+      }
+    })();
   }, []);
 
   return <main className="page">{render(state)}</main>;
@@ -89,7 +99,9 @@ function render(state: State) {
     case 'loading':
       return <p className="muted">در حال بارگذاری…</p>;
     case 'outside-telegram':
-      return <p>این پنل فقط از داخل تلگرام باز می‌شود.</p>;
+      return <p>برای ورود، در ربات دستور /panel را بزنید و لینک ورود را باز کنید.</p>;
+    case 'link-expired':
+      return <p>⏱ لینک ورود منقضی یا استفاده‌شده است. در ربات دوباره /panel بزنید.</p>;
     case 'denied':
       return <p>⛔️ شما دسترسی ادمین ندارید.</p>;
     case 'error':

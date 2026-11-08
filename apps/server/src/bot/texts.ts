@@ -518,6 +518,8 @@ export const adminTexts = {
     toggleProduct: (active: boolean) => (active ? '⛔️ غیرفعال کردن محصول' : '✅ فعال کردن محصول'),
     toggleFeatured: (featured: boolean) => (featured ? '⭐ حذف از ویژه' : '⭐ ویژه کردن'),
     addCard: '➕ کارت جدید',
+    webPanel: '🌐 پنل وب (ساخت محصول و…)',
+    openPanel: '🌐 باز کردن پنل',
     toggle: (label: string, on: boolean) => `${on ? '✅' : '⬜️'} ${label}`,
     edit: (label: string, value: string) => `✏️ ${label}: ${value}`,
   },
@@ -609,4 +611,8 @@ export const adminTexts = {
   settingSaved: '✅ ذخیره شد.',
   failed: (message: string) => `❗️ ${message}`,
   cancelled: 'لغو شد.',
+  panelLink:
+    '🌐 لینک ورود به پنل وب (یک‌بارمصرف، ۱۰ دقیقه اعتبار). در مرورگر گوشی یا کامپیوتر باز کنید؛ ورود ۱۲ ساعت معتبر می‌ماند.\n<i>این لینک را برای کسی نفرستید.</i>',
+  noPublicUrl:
+    'آدرس سرور (PUBLIC_URL) هنوز تنظیم نشده است؛ پنل وب بعد از راه‌اندازی روی سرور در دسترس است.',
 };

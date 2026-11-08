@@ -134,3 +134,11 @@ describe('/admin', () => {
     expect((await getSettings(getDb())).topupMinToman).toBe(100_000);
   });
 });
+
+describe('/panel', () => {
+  it('explains that the web panel needs the server address before deployment', async () => {
+    const t = bot();
+    await t.sendText('/panel', OWNER);
+    expect(lastText(t)).toContain('PUBLIC_URL');
+  });
+});

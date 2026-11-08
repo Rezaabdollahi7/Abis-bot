@@ -101,7 +101,7 @@ docker compose ps && docker compose logs -f server
 
 - `/setdescription`, `/setabouttext`, `/setuserpic` — Persian texts and logo.
 - `/setcommands` → `start - شروع`
-- `/newapp` (or **Bot Settings → Configure Mini App**) → URL `https://<domain>/` — the admin panel. Customers who open it see "access denied"; only admins pass the server check.
+- Admin work happens in the chat (`/admin`); the web panel opens in a normal browser through `/panel` (needs `PUBLIC_URL`). Optional: `/newapp` (or **Bot Settings → Configure Mini App**) → URL `https://<domain>/` for admins whose Telegram loads Mini Apps; non-admins see "access denied".
 - Add the prod bot as **admin of the public channel** (needed to check membership for forced join) and of the **backup channel**.
 
 ## 7. Updating

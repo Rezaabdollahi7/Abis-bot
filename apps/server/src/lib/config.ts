@@ -21,6 +21,8 @@ const envSchema = z.object({
   ENCRYPTION_KEY: z.string().min(1),
   /** Public channel `@username` (or numeric id) for the channel button and forced join. */
   CHANNEL_ID: z.string().min(1).optional(),
+  /** Public HTTPS address of the server (web panel links, webhook). */
+  PUBLIC_URL: z.url().optional(),
 });
 
 export type Config = z.infer<typeof envSchema>;

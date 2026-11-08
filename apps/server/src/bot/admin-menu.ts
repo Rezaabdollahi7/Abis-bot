@@ -2,7 +2,7 @@ import { bankCardInput, normalizeDigits, toman } from '@abis/shared';
 import { Composer, GrammyError, InlineKeyboard } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
-import { resolveAdmin } from '../modules/admins/index.js';
+import { createLoginToken, resolveAdmin } from '../modules/admins/index.js';
 import { createBroadcast } from '../modules/broadcasts/index.js';
 import { catalogAdmin, getFullCatalog, usesStock } from '../modules/catalog/index.js';
 import {
@@ -60,6 +60,7 @@ export function adminMenuComposer(
   db: Db,
   cipher: Cipher,
   ownerIds: readonly number[],
+  publicUrl?: string,
 ): Composer<BotContext> {
   const composer = new Composer<BotContext>();
   const isAdmin = async (ctx: BotContext) =>
@@ -111,7 +112,9 @@ export function adminMenuComposer(
       .text(t.buttons.catalog, 'am:cat')
       .row()
       .text(t.buttons.cards, 'am:cards')
-      .text(t.buttons.settings, 'am:set');
+      .text(t.buttons.settings, 'am:set')
+      .row()
+      .text(t.buttons.webPanel, 'am:web');
     await show(
       ctx,
       t.home({
@@ -129,6 +132,21 @@ export function adminMenuComposer(
 
   admin.command('admin', home);
   admin.callbackQuery('am:home', home);
+
+  /** One-time link to the web panel in a normal browser (for heavy editing). */
+  async function panelLink(ctx: BotContext) {
+    if (ctx.callbackQuery) await ctx.answerCallbackQuery();
+    if (!publicUrl || !ctx.from) return ctx.reply(t.noPublicUrl);
+    const token = await createLoginToken(db, ctx.from.id);
+    const url = `${publicUrl.replace(/\/$/, '')}/?login=${token}`;
+    await ctx.reply(t.panelLink, {
+      parse_mode: 'HTML',
+      reply_markup: new InlineKeyboard().url(t.buttons.openPanel, url),
+    });
+  }
+
+  admin.command('panel', panelLink);
+  admin.callbackQuery('am:web', panelLink);
 
   // ── Queues: re-send the actionable alerts to this admin ──
 

@@ -46,6 +46,7 @@ for (const chatId of await listAdminTelegramIds(db, config.OWNER_TELEGRAM_IDS)) 
       [
         { command: 'start', description: 'منوی اصلی' },
         { command: 'admin', description: 'مدیریت فروشگاه' },
+        { command: 'panel', description: 'لینک پنل وب' },
       ],
       { scope: { type: 'chat', chat_id: chatId } },
     )
