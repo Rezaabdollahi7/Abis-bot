@@ -29,7 +29,11 @@ const botInfo = {
  */
 export function createTestBot(
   db: Db,
-  options: { channelId?: string; ownerIds?: number[]; responses?: Record<string, unknown> } = {},
+  options: {
+    channelId?: string;
+    ownerIds?: number[];
+    responses?: Record<string, unknown>;
+  } = {},
 ) {
   const bot = createBot({
     db,
