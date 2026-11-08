@@ -6,7 +6,17 @@ import { seedTestCatalog } from '../../test/fixtures.js';
 import { getVariantView } from '../catalog/index.js';
 import { registerCustomer } from '../customers/index.js';
 import { createAdjustment, getBalance, listLedger } from '../wallet/index.js';
-import { getOrder, purchase, readCustomerInput, validateInput } from './index.js';
+import {
+  deliverOrder,
+  getOrder,
+  listActiveSubscriptions,
+  listOrders,
+  purchase,
+  readCustomerInput,
+  readDeliveryNote,
+  rejectOrder,
+  validateInput,
+} from './index.js';
 
 const getDb = useTestDb();
 
@@ -154,5 +164,73 @@ describe('purchase', () => {
     ]);
     const statuses = [ra, rb].map((r) => (r.ok ? r.order.status : r.reason)).sort();
     expect(statuses).toEqual(['delivered', 'queued']);
+  });
+});
+
+describe('manual delivery', () => {
+  async function queuedOrder() {
+    const c = await seedTestCatalog(getDb());
+    const customer = await richCustomer(1_000_000);
+    const result = await buy(customer.id, c.chatgpt1m.id, 1, { email: 'me@mail.com' });
+    if (!result.ok) throw new Error(result.reason);
+    return { customer, order: result.order };
+  }
+
+  it('delivers once, stores the note encrypted, starts the subscription and schedules the purge', async () => {
+    const { customer, order } = await queuedOrder();
+    const first = await deliverOrder(getDb(), testCipher, {
+      orderId: order.id,
+      actor: 1,
+      note: 'فعال شد',
+    });
+    const second = await deliverOrder(getDb(), testCipher, {
+      orderId: order.id,
+      actor: 2,
+      note: 'x',
+    });
+    expect(first.ok).toBe(true);
+    expect(second).toMatchObject({
+      ok: false,
+      order: { status: 'delivered', handledByTelegramId: 1 },
+    });
+    if (!first.ok) return;
+    expect(first.order.deliveryNoteEncrypted).not.toContain('فعال');
+    expect(readDeliveryNote(testCipher, first.order)).toBe('فعال شد');
+    const purgeDays =
+      ((first.order.inputPurgeAt?.getTime() ?? 0) - (first.order.deliveredAt?.getTime() ?? 0)) /
+      86_400_000;
+    expect(purgeDays).toBe(7);
+    const [active] = await listActiveSubscriptions(getDb(), customer.id);
+    expect(active?.order.id).toBe(order.id);
+  });
+
+  it('rejects once with a full refund and no subscription', async () => {
+    const { customer, order } = await queuedOrder();
+    expect(await getBalance(getDb(), customer.id)).toBe(200_000);
+    const results = await Promise.all([
+      rejectOrder(getDb(), { orderId: order.id, actor: 1, reason: 'out of service' }),
+      rejectOrder(getDb(), { orderId: order.id, actor: 2, reason: 'out of service' }),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(await getBalance(getDb(), customer.id)).toBe(1_000_000);
+    expect(await listActiveSubscriptions(getDb(), customer.id)).toEqual([]);
+    const delivered = await deliverOrder(getDb(), testCipher, {
+      orderId: order.id,
+      actor: 1,
+      note: 'x',
+    });
+    expect(delivered.ok).toBe(false);
+  });
+
+  it('lists the queue oldest first', async () => {
+    const c = await seedTestCatalog(getDb());
+    const customer = await richCustomer();
+    const a = await buy(customer.id, c.chatgpt1m.id, 1, { email: 'a@mail.com' });
+    const b = await buy(customer.id, c.chatgpt3m.id, 1, { email: 'b@mail.com' });
+    if (!a.ok || !b.ok) throw new Error('setup failed');
+    expect((await listOrders(getDb(), 'queued', 10)).map((o) => o.id)).toEqual([
+      a.order.id,
+      b.order.id,
+    ]);
   });
 });

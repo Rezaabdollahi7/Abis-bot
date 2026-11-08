@@ -3,12 +3,14 @@ import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import type { Config } from '../lib/config.js';
 import { registerCustomer } from '../modules/customers/index.js';
+import { listActiveSubscriptions } from '../modules/orders/index.js';
 import { getSettings } from '../modules/settings/index.js';
 import { getBalance, listLedger } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
 import { sessionStorage } from './session.js';
 import { purchaseComposer } from './purchase.js';
+import { orderProductLine } from './order-alerts.js';
 import { shopComposer } from './shop.js';
 import { texts } from './texts.js';
 import { topupAlertComposer } from './topup-alerts.js';
@@ -96,6 +98,12 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
         phone: customer.phone,
         memberSince: customer.createdAt,
         recent: await listLedger(db, customer.id, 5),
+        subscriptions: await Promise.all(
+          (await listActiveSubscriptions(db, customer.id)).map(async ({ order, subscription }) => ({
+            line: await orderProductLine(db, order),
+            expiresAt: subscription.expiresAt,
+          })),
+        ),
       }),
       { parse_mode: 'HTML', reply_markup: homeOnly() },
     );

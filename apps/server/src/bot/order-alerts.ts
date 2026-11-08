@@ -1,15 +1,23 @@
-import { toman } from '@abis/shared';
-import { type Api, GrammyError } from 'grammy';
+import { type Toman, toman } from '@abis/shared';
+import { type Api, GrammyError, InlineKeyboard } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import { listAdminTelegramIds } from '../modules/admins/index.js';
-import { getCustomer } from '../modules/customers/index.js';
-import { recordNotifications } from '../modules/notifications/index.js';
-import { type PurchaseResult, readCustomerInput } from '../modules/orders/index.js';
+import { getVariantWithProduct } from '../modules/catalog/index.js';
+import { getCustomer, namesByTelegramId } from '../modules/customers/index.js';
+import { listNotifications, recordNotifications } from '../modules/notifications/index.js';
+import {
+  type Order,
+  type PurchaseResult,
+  readCustomerInput,
+  readDeliveryNote,
+} from '../modules/orders/index.js';
 import { getSettings } from '../modules/settings/index.js';
-import { formatDuration, texts } from './texts.js';
+import { cb } from './keyboards.js';
+import { escapeHtml, formatDuration, texts } from './texts.js';
 
 type Purchased = PurchaseResult & { ok: true };
+const ENTITY = 'order';
 
 /** Sends `text` to every admin; returns the copies sent. Unreachable admins are skipped. */
 export async function broadcastToAdmins(
@@ -31,8 +39,42 @@ export async function broadcastToAdmins(
   return sent;
 }
 
-const productLine = (r: Purchased) =>
-  `${r.provider.emoji} ${r.product.name} · ${formatDuration(r.variant.durationDays)}`;
+/** "🟢 ChatGPT Plus · ۱ ماهه" for an order's variant. */
+export async function orderProductLine(db: Db, order: Order): Promise<string> {
+  const found = await getVariantWithProduct(db, order.variantId);
+  return found
+    ? `${found.provider.emoji} ${found.product.name} · ${formatDuration(found.variant.durationDays)}`
+    : `#${order.variantId}`;
+}
+
+async function renderOrderAlert(db: Db, cipher: Cipher, order: Order): Promise<string> {
+  const [customer, line, names] = await Promise.all([
+    getCustomer(db, order.customerId),
+    orderProductLine(db, order),
+    namesByTelegramId(db, order.handledByTelegramId ? [order.handledByTelegramId] : []),
+  ]);
+  const admin = order.handledByTelegramId
+    ? escapeHtml(names.get(order.handledByTelegramId) ?? String(order.handledByTelegramId))
+    : '';
+  const status =
+    order.status === 'delivered'
+      ? `✅ <b>تحویل شد</b> توسط ${admin}`
+      : order.status === 'rejected'
+        ? `❌ <b>رد شد</b> توسط ${admin} — ${escapeHtml(order.rejectReason ?? '')} (مبلغ برگشت داده شد)`
+        : null;
+  const body = texts.orderAlert({
+    orderId: order.id,
+    productLine: line,
+    quantity: order.quantity,
+    total: toman(order.totalToman),
+    customerName: customer?.firstName ?? '?',
+    username: customer?.username ?? null,
+    telegramId: customer?.telegramId ?? 0,
+    input: readCustomerInput(cipher, order),
+    outOfStock: order.customerInputEncrypted === null,
+  });
+  return status ? `${body}\n\n${status}` : body;
+}
 
 /** A queued order needs a human: tell every admin what to activate and for whom. */
 export async function alertAdminsOfQueuedOrder(
@@ -42,20 +84,49 @@ export async function alertAdminsOfQueuedOrder(
   cipher: Cipher,
   result: Purchased,
 ): Promise<void> {
-  const customer = await getCustomer(db, result.order.customerId);
-  const text = texts.orderAlert({
-    orderId: result.order.id,
-    productLine: productLine(result),
-    quantity: result.order.quantity,
-    total: toman(result.order.totalToman),
-    customerName: customer?.firstName ?? '?',
-    username: customer?.username ?? null,
-    telegramId: customer?.telegramId ?? 0,
-    input: readCustomerInput(cipher, result.order),
-    outOfStock: result.stockLeft !== null,
-  });
-  const sent = await broadcastToAdmins(api, db, ownerIds, text);
-  await recordNotifications(db, { type: 'order', id: result.order.id }, sent);
+  const sent = await broadcastToAdmins(
+    api,
+    db,
+    ownerIds,
+    await renderOrderAlert(db, cipher, result.order),
+  );
+  await recordNotifications(db, { type: ENTITY, id: result.order.id }, sent);
+}
+
+/** After manual delivery or rejection: tell the customer and update every admin's alert. */
+export async function announceOrderDecision(
+  api: Api,
+  db: Db,
+  cipher: Cipher,
+  order: Order,
+  balance?: Toman,
+): Promise<void> {
+  const customer = await getCustomer(db, order.customerId);
+  const line = await orderProductLine(db, order);
+  if (customer) {
+    const text =
+      order.status === 'delivered'
+        ? texts.orderDeliveredManually(order.id, line, readDeliveryNote(cipher, order) ?? '')
+        : texts.orderRejected(
+            order.id,
+            line,
+            order.rejectReason ?? '',
+            toman(order.totalToman),
+            balance,
+          );
+    await api
+      .sendMessage(customer.telegramId, text, {
+        parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard().text(texts.buttons.home, cb.home),
+      })
+      .catch((error: unknown) => console.error('Could not notify customer:', error));
+  }
+  const alert = await renderOrderAlert(db, cipher, order);
+  for (const { chatId, messageId } of await listNotifications(db, { type: ENTITY, id: order.id })) {
+    await api
+      .editMessageText(chatId, messageId, alert, { parse_mode: 'HTML' })
+      .catch((error: unknown) => console.error('Could not update admin alert:', error));
+  }
 }
 
 /** Alerts once, when a sale takes stock from above the threshold to at or below it. */
@@ -73,7 +144,7 @@ export async function alertIfLowStock(
       api,
       db,
       ownerIds,
-      texts.lowStockAlert(productLine(result), result.stockLeft),
+      texts.lowStockAlert(await orderProductLine(db, result.order), result.stockLeft),
     );
   }
 }

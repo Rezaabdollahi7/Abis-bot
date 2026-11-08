@@ -35,6 +35,8 @@ export const orders = pgTable(
     inputPurgeAt: timestamp({ withTimezone: true }),
     /** One purchase per confirm button: a double click cannot buy twice. */
     requestKey: text().notNull(),
+    /** What an admin sent the customer on manual delivery (may hold credentials) — encrypted. */
+    deliveryNoteEncrypted: text(),
     rejectReason: text(),
     handledByTelegramId: bigint({ mode: 'number' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

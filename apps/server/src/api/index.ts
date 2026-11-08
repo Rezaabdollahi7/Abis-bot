@@ -7,6 +7,7 @@ import { InitDataError, validateInitData } from '../lib/init-data.js';
 import type { Config } from '../lib/config.js';
 import { type AdminIdentity, resolveAdmin } from '../modules/admins/index.js';
 import { catalogRoutes } from './catalog.js';
+import { orderRoutes } from './orders.js';
 import { settingsRoutes } from './settings.js';
 import { stockRoutes } from './stock.js';
 import { walletRoutes } from './wallet.js';
@@ -65,6 +66,7 @@ export function createApi({ db, telegram, cipher, config, now }: ApiDeps): Hono<
   api.route('/', catalogRoutes(db));
   api.route('/', settingsRoutes(db));
   api.route('/', stockRoutes(db, cipher));
+  api.route('/', orderRoutes(db, telegram, cipher));
   api.route('/', walletRoutes(db, telegram, config.BOT_TOKEN));
 
   return api;
