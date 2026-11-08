@@ -146,7 +146,8 @@ export function topupComposer(db: Db, ownerIds: readonly number[]): Composer<Bot
 
   topup.on('message:text', async (ctx, next) => {
     const { step } = ctx.session;
-    if (!step || ctx.message.text.startsWith('/')) return next();
+    const ownStep = step === 'phone' || step === 'amount' || step === 'receipt';
+    if (!ownStep || ctx.message.text.startsWith('/')) return next();
     if (ctx.message.text === texts.buttons.cancel) {
       await ctx.reply(texts.cancelled, { reply_markup: { remove_keyboard: true } });
       ctx.session = {};

@@ -106,3 +106,31 @@ export interface OrderDto {
 
 export const deliverOrderInput = z.object({ note: z.string().trim().min(1).max(3500) });
 export const rejectOrderInput = z.object({ reason: z.string().trim().min(3).max(300) });
+
+export type TicketTopic = 'order' | 'payment' | 'general';
+export type TicketStatus = 'awaiting_admin' | 'awaiting_customer' | 'closed';
+
+export interface TicketSummaryDto {
+  id: number;
+  topic: TicketTopic;
+  status: TicketStatus;
+  orderId: number | null;
+  customer: { id: number; telegramId: number; firstName: string; username: string | null };
+  lastMessage: string | null;
+  updatedAt: string;
+}
+
+export interface TicketMessageDto {
+  id: number;
+  fromAdmin: string | null;
+  text: string | null;
+  fileKind: 'photo' | 'document' | null;
+  createdAt: string;
+}
+
+export interface TicketDetailDto extends TicketSummaryDto {
+  orderLine: string | null;
+  messages: TicketMessageDto[];
+}
+
+export const ticketReplyInput = z.object({ text: z.string().trim().min(1).max(3500) });

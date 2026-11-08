@@ -41,6 +41,7 @@ import {
   rejectTopup,
 } from '../modules/wallet/index.js';
 import { parseBody } from './body.js';
+import { streamTelegramFile } from './telegram-file.js';
 import type { ApiEnv } from './index.js';
 
 const LIST_LIMIT = 100;
@@ -63,16 +64,7 @@ export function walletRoutes(db: Db, telegram: Api, botToken: string): Hono<ApiE
   routes.get('/topups/:id{[0-9]+}/receipt', async (c) => {
     const topup = await getTopup(db, id(c));
     if (!topup) return c.json<ApiError>({ error: 'not_found' }, 404);
-    const file = await telegram.getFile(topup.receiptFileId);
-    if (!file.file_path) return c.json<ApiError>({ error: 'not_found' }, 404);
-    const res = await fetch(`https://api.telegram.org/file/bot${botToken}/${file.file_path}`);
-    if (!res.ok || !res.body) return c.json<ApiError>({ error: 'not_found' }, 404);
-    return new Response(res.body, {
-      headers: {
-        'Content-Type': res.headers.get('Content-Type') ?? 'image/jpeg',
-        'Cache-Control': 'private, max-age=3600',
-      },
-    });
+    return streamTelegramFile(c, telegram, botToken, topup.receiptFileId);
   });
 
   async function decided(c: Context<ApiEnv>, result: DecisionResult) {

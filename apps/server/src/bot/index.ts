@@ -12,6 +12,7 @@ import { sessionStorage } from './session.js';
 import { purchaseComposer } from './purchase.js';
 import { orderProductLine } from './order-alerts.js';
 import { shopComposer } from './shop.js';
+import { supportComposer } from './support.js';
 import { texts } from './texts.js';
 import { topupAlertComposer } from './topup-alerts.js';
 import { topupComposer } from './topup.js';
@@ -112,11 +113,7 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   pm.use(shopComposer(db));
   pm.use(purchaseComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(topupComposer(db, config.OWNER_TELEGRAM_IDS));
-
-  // Placeholders until their roadmap items land.
-  pm.callbackQuery([cb.support], (ctx) =>
-    ctx.answerCallbackQuery({ text: texts.comingSoon, show_alert: true }),
-  );
+  pm.use(supportComposer(db, config.OWNER_TELEGRAM_IDS));
 
   bot.catch((err) => {
     console.error(`Error while handling update ${err.ctx.update.update_id}:`, err.error);

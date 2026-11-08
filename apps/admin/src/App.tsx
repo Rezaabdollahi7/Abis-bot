@@ -6,6 +6,7 @@ import { CatalogPage } from './catalog/CatalogPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { TicketsPage } from './tickets/TicketsPage';
 import { TopupsPage } from './topups/TopupsPage';
 import { initData, telegramWebApp } from './telegram';
 
@@ -19,6 +20,7 @@ type State =
 const tabs = [
   { id: 'topups', label: 'واریزها', Page: TopupsPage },
   { id: 'orders', label: 'سفارش‌ها', Page: OrdersPage },
+  { id: 'tickets', label: 'تیکت‌ها', Page: TicketsPage },
   { id: 'customers', label: 'کاربران', Page: CustomersPage },
   { id: 'catalog', label: 'کاتالوگ', Page: CatalogPage },
   { id: 'settings', label: 'تنظیمات', Page: SettingsPage },

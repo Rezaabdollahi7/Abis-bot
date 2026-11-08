@@ -262,3 +262,34 @@ details summary {
   padding: 1px 4px;
   border-radius: 4px;
 }
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bubble {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px 10px;
+  max-width: 85%;
+  align-self: flex-start;
+}
+.bubble.mine {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg));
+}
+.pre-wrap {
+  white-space: pre-wrap;
+}
+.reply-box {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent);
+  background: var(--bg);
+  color: var(--text);
+}

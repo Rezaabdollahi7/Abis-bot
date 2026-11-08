@@ -10,6 +10,14 @@ const jalaliDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'l
 const faNumber = new Intl.NumberFormat('fa-IR');
 const shortDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'short', day: 'numeric' });
 
+type TicketTopicName = 'order' | 'payment' | 'general';
+type TicketStatusName = 'awaiting_admin' | 'awaiting_customer' | 'closed';
+export const ticketTopicLabels: Record<TicketTopicName, string> = {
+  order: '📦 سفارش',
+  payment: '💳 پرداخت',
+  general: '💬 سؤال عمومی',
+};
+
 const ledgerKindLabels: Record<LedgerKind, string> = {
   topup: 'شارژ',
   purchase: 'خرید',
@@ -248,6 +256,57 @@ export const texts = {
   lowStockAlert: (productLine: string, left: number) =>
     `⚠️ <b>موجودی رو به اتمام</b>\n${escapeHtml(productLine)}\nباقی‌مانده: ${faNumber.format(left)}`,
 
+  // ── Support ──
+  supportHome: (count: number) =>
+    count > 0
+      ? '🎧 <b>پشتیبانی</b>\n\nتیکت‌های باز شما در زیر هستند. برای مشاهده یا پاسخ، روی هر کدام بزنید:'
+      : '🎧 <b>پشتیبانی</b>\n\nسؤال یا مشکلی دارید؟ یک تیکت جدید باز کنید؛ پاسخ همین‌جا برایتان ارسال می‌شود.',
+  ticketButton: (id: number, topic: TicketTopicName, status: TicketStatusName) =>
+    `${status === 'awaiting_customer' ? '📩' : '⏳'} #${faNumber.format(id)} · ${ticketTopicLabels[topic]}`,
+  chooseTopic: 'موضوع تیکت را انتخاب کنید:',
+  chooseOrder: 'تیکت درباره‌ی کدام سفارش است؟',
+  orderButton: (id: number, line: string) => `#${faNumber.format(id)} · ${line}`,
+  writeTicket:
+    '✍️ پیام خود را بنویسید. می‌توانید <b>عکس</b> (مثلاً اسکرین‌شات خطا) یا <b>فایل</b> هم بفرستید.',
+  ticketOpened: (id: number) =>
+    `✅ تیکت #${faNumber.format(id)} ثبت شد. پاسخ پشتیبانی همین‌جا برایتان ارسال می‌شود.`,
+  ticketMessageAdded: (id: number) => `✅ پیام شما به تیکت #${faNumber.format(id)} اضافه شد.`,
+  ticketClosed: (id: number) => `🔒 تیکت #${faNumber.format(id)} بسته شد.`,
+  ticketView: (
+    id: number,
+    topic: TicketTopicName,
+    messages: { fromAdmin: boolean; text: string | null; hasFile: boolean }[],
+  ) =>
+    [
+      `🎫 <b>تیکت #${faNumber.format(id)}</b> · ${ticketTopicLabels[topic]}`,
+      '',
+      ...messages
+        .slice(-8)
+        .map(
+          (m) =>
+            `${m.fromAdmin ? '🎧 <b>پشتیبانی:</b>' : '👤 <b>شما:</b>'} ${m.text ? escapeHtml(m.text) : ''}${m.hasFile ? ' 📎' : ''}`,
+        ),
+    ].join('\n'),
+  ticketReplyToCustomer: (id: number, text: string) =>
+    `📩 <b>پاسخ پشتیبانی</b> — تیکت #${faNumber.format(id)}\n\n${escapeHtml(text)}`,
+  ticketAlert: (args: {
+    ticketId: number;
+    topic: TicketTopicName;
+    orderId: number | null;
+    customerName: string;
+    username: string | null;
+    isNew: boolean;
+    text: string | null;
+    hasFile: boolean;
+  }) =>
+    [
+      `🎧 <b>${args.isNew ? 'تیکت جدید' : 'پیام جدید در تیکت'} #${faNumber.format(args.ticketId)}</b> · ${ticketTopicLabels[args.topic]}${args.orderId ? ` · سفارش #${faNumber.format(args.orderId)}` : ''}`,
+      `👤 ${escapeHtml(args.customerName)}${args.username ? ` (@${escapeHtml(args.username)})` : ''}`,
+      '',
+      ...(args.text ? [escapeHtml(args.text.slice(0, 1000))] : []),
+      ...(args.hasFile ? ['📎 فایل پیوست — در پنل قابل مشاهده است'] : []),
+    ].join('\n'),
+
   // ── Top-up (customer) ──
   topupUnavailable: '💳 شارژ کیف پول موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.',
   askPhone:
@@ -345,7 +404,6 @@ export const texts = {
       'بعد از عضویت، دکمه‌ی «عضو شدم» را بزنید.',
     ].join('\n'),
   notJoinedYet: 'هنوز عضو کانال نشده‌اید ❗️',
-  comingSoon: '🛠 این بخش به‌زودی فعال می‌شود.',
 
   buttons: {
     shop: '🛍 فروشگاه',
@@ -368,6 +426,11 @@ export const texts = {
     topupShortfall: (shortfall: Toman) => `💳 شارژ ${formatToman(shortfall)}`,
     quantity: (n: number) => faNumber.format(n),
     renew: '🔁 تمدید',
+    newTicket: '➕ تیکت جدید',
+    replyTicket: '✍️ پاسخ',
+    closeTicket: '🔒 بستن تیکت',
+    noOrder: 'مربوط به سفارش خاصی نیست',
+    topic: (topic: TicketTopicName) => ticketTopicLabels[topic],
   },
 } as const;
 
