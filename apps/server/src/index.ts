@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { createApi } from './api/index.js';
 import { createBot } from './bot/index.js';
 import { connectDb, runMigrations } from './db/client.js';
@@ -13,7 +14,16 @@ const cipher = createCipher(config.ENCRYPTION_KEY);
 const { db } = connectDb(config.DATABASE_URL);
 await runMigrations(db);
 
-const bot = createBot({ db, cipher, config });
+// Optional outbound proxy for the Bot API (e.g. a sandbox or a network that needs one).
+const proxy = process.env.HTTPS_PROXY ?? process.env.https_proxy;
+const bot = createBot({
+  db,
+  cipher,
+  config,
+  ...(proxy
+    ? { botConfig: { client: { baseFetchConfig: { agent: new HttpsProxyAgent(proxy) } } } }
+    : {}),
+});
 
 const app = new Hono();
 app.get('/health', (c) => c.json({ ok: true }));
