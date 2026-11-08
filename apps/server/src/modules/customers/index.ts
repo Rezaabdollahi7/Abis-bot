@@ -1,5 +1,6 @@
 import { desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
+import { recordAudit } from '../audit/index.js';
 import { customers } from './schema.js';
 
 export type Customer = typeof customers.$inferSelect;
@@ -97,4 +98,37 @@ export async function searchCustomers(db: Db, query: string, limit: number): Pro
     )
     .orderBy(desc(customers.lastSeenAt))
     .limit(limit);
+}
+
+/** Bans or unbans a customer (audited). Their wallet is untouched. */
+export async function setBanned(
+  db: Db,
+  input: { customerId: number; banned: boolean; actor: number },
+): Promise<Customer | undefined> {
+  return db.transaction(async (tx) => {
+    const [customer] = await tx
+      .update(customers)
+      .set({ isBanned: input.banned })
+      .where(eq(customers.id, input.customerId))
+      .returning();
+    if (customer) {
+      await recordAudit(tx, {
+        adminTelegramId: input.actor,
+        action: input.banned ? 'customer.ban' : 'customer.unban',
+        entityType: 'customer',
+        entityId: customer.id,
+      });
+    }
+    return customer;
+  });
+}
+
+/** Telegram ids of everyone a broadcast should reach (not banned). */
+export async function listBroadcastRecipients(db: Db): Promise<number[]> {
+  const rows = await db
+    .select({ telegramId: customers.telegramId })
+    .from(customers)
+    .where(eq(customers.isBanned, false))
+    .orderBy(customers.id);
+  return rows.map((r) => r.telegramId);
 }

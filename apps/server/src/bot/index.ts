@@ -54,6 +54,16 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   // Admin alert buttons work regardless of forced join.
   pm.use(topupAlertComposer(db, config.OWNER_TELEGRAM_IDS));
 
+  // Banned customers keep their wallet but can't use the bot.
+  pm.use(async (ctx, next) => {
+    if (!ctx.customer.isBanned) return next();
+    if (ctx.callbackQuery) {
+      await ctx.answerCallbackQuery({ text: texts.banned, show_alert: true });
+    } else {
+      await ctx.reply(texts.banned);
+    }
+  });
+
   // 2. Forced join gate (setting can be toggled from the panel).
   pm.use(async (ctx, next) => {
     const { forcedJoin } = await getSettings(db);
