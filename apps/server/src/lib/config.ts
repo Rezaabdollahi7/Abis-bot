@@ -17,6 +17,8 @@ const envSchema = z.object({
   BOT_TOKEN: z.string().min(1),
   OWNER_TELEGRAM_IDS: telegramIdList,
   DATABASE_URL: z.url(),
+  /** Public channel `@username` (or numeric id) for the channel button and forced join. */
+  CHANNEL_ID: z.string().min(1).optional(),
 });
 
 export type Config = z.infer<typeof envSchema>;
