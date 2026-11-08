@@ -8,6 +8,7 @@ import { type ApiCall, createTestBot } from '../test/bot.js';
 import { useTestDb } from '../test/db.js';
 import { findCustomerByTelegramId, setBanned } from '../modules/customers/index.js';
 import { updateSetting } from '../modules/settings/index.js';
+import { ignoreExpiredCallbackAnswers } from './index.js';
 import { cb } from './keyboards.js';
 
 const getDb = useTestDb();
@@ -92,6 +93,42 @@ describe('main menu', () => {
     const text = String(t.callsOf('editMessageText').at(-1)?.payload.text);
     expect(text).toContain('تراکنش‌های اخیر');
     expect(text).toContain('➕ ۲۵۰٬۰۰۰ تومان · اصلاحیه');
+  });
+});
+
+describe('late button presses', () => {
+  const expired = {
+    ok: false as const,
+    error_code: 400,
+    description:
+      'Bad Request: query is too old and response timeout expired or query ID is invalid',
+  };
+
+  it('treat an expired callback answer as success so the action still runs', async () => {
+    const result = await ignoreExpiredCallbackAnswers(
+      () => Promise.resolve(expired),
+      'answerCallbackQuery',
+      { callback_query_id: '1' },
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('leave other failures alone', async () => {
+    const result = await ignoreExpiredCallbackAnswers(
+      () => Promise.resolve({ ...expired, description: 'Bad Request: chat not found' }),
+      'answerCallbackQuery',
+      { callback_query_id: '1' },
+    );
+    expect(result.ok).toBe(false);
+    const other = await ignoreExpiredCallbackAnswers(
+      () => Promise.resolve(expired),
+      'sendMessage',
+      {
+        chat_id: 1,
+        text: 'x',
+      },
+    );
+    expect(other.ok).toBe(false);
   });
 });
 

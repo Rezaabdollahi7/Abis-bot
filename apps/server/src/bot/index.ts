@@ -1,4 +1,4 @@
-import { Bot, type BotConfig, GrammyError, session } from 'grammy';
+import { Bot, type BotConfig, GrammyError, type Transformer, session } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import type { Config } from '../lib/config.js';
@@ -29,6 +29,10 @@ const MEMBER_STATUSES = new Set(['creator', 'administrator', 'member']);
 
 export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotContext> {
   const bot = new Bot<BotContext>(config.BOT_TOKEN, botConfig);
+
+  // A button press handled late (after a restart or a slow moment) can no longer be
+  // acknowledged. That must not abort the handler: the action itself still has to run.
+  bot.api.config.use(ignoreExpiredCallbackAnswers);
   const channelLink = channelUrl(config.CHANNEL_ID);
   const pm = bot.chatType('private');
 
@@ -131,6 +135,17 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
 
   return bot;
 }
+
+/** API transformer: an expired `answerCallbackQuery` counts as success instead of throwing. */
+export const ignoreExpiredCallbackAnswers: Transformer = async (prev, method, payload, signal) => {
+  const response = await prev(method, payload, signal);
+  const expired =
+    !response.ok &&
+    (response.description.includes('query is too old') ||
+      response.description.includes('query ID is invalid'));
+  if (method === 'answerCallbackQuery' && expired) return { ok: true, result: true as never };
+  return response;
+};
 
 async function isChannelMember(ctx: BotContext, channelId: string): Promise<boolean> {
   if (!ctx.from) return false;
