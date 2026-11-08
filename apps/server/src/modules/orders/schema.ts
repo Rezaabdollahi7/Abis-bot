@@ -38,6 +38,8 @@ export const orders = pgTable(
     /** What an admin sent the customer on manual delivery (may hold credentials) — encrypted. */
     deliveryNoteEncrypted: text(),
     rejectReason: text(),
+    /** Set when a warranty refund was paid; at most one per order. */
+    warrantyRefundedAt: timestamp({ withTimezone: true }),
     handledByTelegramId: bigint({ mode: 'number' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     deliveredAt: timestamp({ withTimezone: true }),

@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { ApiRequestError, apiFetch, apiFetchBlob } from '../api';
 import { Modal, fa, formatDateTime } from '../ui';
 import { useLoad } from '../useLoad';
+import { WarrantyBox } from './WarrantyBox';
 
 const statusTabs: { id: TicketStatus; label: string }[] = [
   { id: 'awaiting_admin', label: 'منتظر پاسخ ما' },
@@ -112,6 +113,7 @@ function TicketDialog(props: { id: number; onClose: () => void }) {
               </>
             )}
           </p>
+          {ticket.orderId && <WarrantyBox orderId={ticket.orderId} />}
           <div className="thread">
             {ticket.messages.map((m) => (
               <Message key={m.id} message={m} />

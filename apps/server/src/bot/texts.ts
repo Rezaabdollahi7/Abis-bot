@@ -225,6 +225,14 @@ export const texts = {
       `اشتراک ${escapeHtml(line)} شما ${shortDate.format(expiresAt)} به پایان می‌رسد.`,
       'برای جلوگیری از قطع شدن، همین حالا تمدید کنید 👇',
     ].join('\n'),
+  warrantyRefunded: (orderId: number, amount: Toman, reason: string, balance: Toman) =>
+    [
+      `🛡 <b>گارانتی سفارش #${faNumber.format(orderId)}</b>`,
+      `دلیل: ${escapeHtml(reason)}`,
+      '',
+      `💰 مبلغ ${formatToman(amount)} به کیف پول شما برگشت داده شد.`,
+      `موجودی فعلی: ${formatToman(balance)}`,
+    ].join('\n'),
   notEnoughStock: (available: number) =>
     `فقط ${faNumber.format(available)} عدد موجود است. لطفاً تعداد کمتری انتخاب کنید.`,
   confirmExpired: 'این پیش‌فاکتور منقضی شده است. لطفاً دوباره از فروشگاه انتخاب کنید.',

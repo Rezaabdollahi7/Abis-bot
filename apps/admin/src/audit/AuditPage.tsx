@@ -15,6 +15,13 @@ const actionLabels: Record<string, string> = {
   'product.update': 'ویرایش محصول',
   'variant.create': 'افزودن مدت',
   'variant.update': 'ویرایش مدت/قیمت',
+  'stock.add': 'افزودن به انبار',
+  'stock.remove': 'حذف از انبار',
+  'order.deliver': 'تحویل سفارش',
+  'order.reject': 'رد سفارش و بازپرداخت',
+  'order.warranty_refund': 'بازپرداخت گارانتی',
+  'ticket.reply': 'پاسخ تیکت',
+  'ticket.close': 'بستن تیکت',
 };
 
 export function AuditPage() {

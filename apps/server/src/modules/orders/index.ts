@@ -390,3 +390,98 @@ export async function listCustomerOrders(db: Db, customerId: number, limit = 8):
     .orderBy(desc(orders.id))
     .limit(limit);
 }
+
+export interface WarrantyInfo {
+  /** Delivery + the product's warranty days; null if not delivered. */
+  warrantyEndsAt: Date | null;
+  underWarranty: boolean;
+  /** Unused share of the price: total × remaining subscription days ÷ duration. */
+  suggestedRefund: Toman;
+  alreadyRefunded: boolean;
+}
+
+export async function getWarrantyInfo(
+  db: Db,
+  order: Order,
+  now = new Date(),
+): Promise<WarrantyInfo> {
+  const found = await getVariantWithProduct(db, order.variantId);
+  const [subscription] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.orderId, order.id));
+  const delivered = order.status === 'delivered' && order.deliveredAt;
+  const warrantyEndsAt =
+    delivered && found
+      ? new Date((order.deliveredAt?.getTime() ?? 0) + found.product.warrantyDays * DAY_MS)
+      : null;
+  const durationDays = found?.variant.durationDays ?? 0;
+  const remainingDays = subscription
+    ? Math.max(0, Math.floor((subscription.expiresAt.getTime() - now.getTime()) / DAY_MS))
+    : 0;
+  const suggested =
+    durationDays > 0
+      ? Math.floor((order.totalToman * Math.min(remainingDays, durationDays)) / durationDays)
+      : 0;
+  return {
+    warrantyEndsAt,
+    underWarranty: warrantyEndsAt !== null && warrantyEndsAt > now,
+    suggestedRefund: toman(suggested),
+    alreadyRefunded: order.warrantyRefundedAt !== null,
+  };
+}
+
+export class WarrantyError extends Error {}
+
+/**
+ * Pays a warranty refund once per delivered order (guarded on warranty_refunded_at),
+ * ends the subscription now so no renewal reminder follows, and audits it.
+ * The amount is the admin's call (usually the suggested prorated amount), capped at the order total.
+ */
+export async function refundWarranty(
+  db: Db,
+  input: { orderId: number; actor: number; amount: Toman; reason: string },
+): Promise<{ order: Order; balance: Toman }> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx.select().from(orders).where(eq(orders.id, input.orderId));
+    if (!current) throw new WarrantyError('سفارش پیدا نشد');
+    if (input.amount <= 0 || input.amount > current.totalToman) {
+      throw new WarrantyError('مبلغ بازپرداخت باید بین ۱ و مبلغ سفارش باشد');
+    }
+    const now = new Date();
+    const [order] = await tx
+      .update(orders)
+      .set({ warrantyRefundedAt: now })
+      .where(
+        and(
+          eq(orders.id, input.orderId),
+          eq(orders.status, 'delivered'),
+          isNull(orders.warrantyRefundedAt),
+        ),
+      )
+      .returning();
+    if (!order) throw new WarrantyError('این سفارش تحویل‌نشده است یا قبلاً بازپرداخت گارانتی شده');
+
+    await tx
+      .update(subscriptions)
+      .set({ expiresAt: now })
+      .where(eq(subscriptions.orderId, order.id));
+    await recordLedgerEntry(tx, {
+      customerId: order.customerId,
+      amount: input.amount,
+      kind: 'refund',
+      refType: 'warranty',
+      refId: order.id,
+      reason: input.reason,
+      createdByAdminTelegramId: input.actor,
+    });
+    await recordAudit(tx, {
+      adminTelegramId: input.actor,
+      action: 'order.warranty_refund',
+      entityType: 'order',
+      entityId: order.id,
+      data: { amount: input.amount, reason: input.reason },
+    });
+    return { order, balance: await getBalance(tx, order.customerId) };
+  });
+}

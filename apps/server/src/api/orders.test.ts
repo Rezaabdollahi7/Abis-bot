@@ -1,4 +1,4 @@
-import { type OrderDto, toman } from '@abis/shared';
+import { type OrderDto, type WarrantyDto, toman } from '@abis/shared';
 import { describe, expect, it } from 'vitest';
 import { registerCustomer } from '../modules/customers/index.js';
 import { recordNotifications } from '../modules/notifications/index.js';
@@ -68,5 +68,31 @@ describe('orders API', () => {
     expect(await getBalance(getDb(), customer.id)).toBe(1_000_000);
     const again = await api.send('POST', `/orders/${order.id}/deliver`, { note: 'x' });
     expect(again.status).toBe(409);
+  });
+});
+
+describe('warranty API', () => {
+  it('shows warranty info and pays a refund once, notifying the customer', async () => {
+    const { customer, order } = await queued();
+    const api = adminClient(getDb());
+    await api.send('POST', `/orders/${order.id}/deliver`, { note: 'done' });
+
+    const info = (await (await api.get(`/orders/${order.id}/warranty`)).json()) as WarrantyDto;
+    expect(info).toMatchObject({ underWarranty: true, alreadyRefunded: false });
+    expect(info.suggestedRefundToman).toBeGreaterThan(700_000);
+
+    const res = await api.send('POST', `/orders/${order.id}/warranty-refund`, {
+      amountToman: info.suggestedRefundToman,
+      reason: 'اکانت مسدود شد',
+    });
+    expect(res.status).toBe(200);
+    expect(await getBalance(getDb(), customer.id)).toBe(200_000 + info.suggestedRefundToman);
+    expect(String(api.telegramCalls.at(-1)?.payload.text)).toContain('گارانتی سفارش');
+
+    const again = await api.send('POST', `/orders/${order.id}/warranty-refund`, {
+      amountToman: 1000,
+      reason: 'again',
+    });
+    expect(again.status).toBe(400);
   });
 });

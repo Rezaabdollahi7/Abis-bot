@@ -1,19 +1,33 @@
-import { type ApiError, type OrderDto, deliverOrderInput, rejectOrderInput } from '@abis/shared';
-import type { Api } from 'grammy';
+import {
+  type ApiError,
+  type OrderDto,
+  type WarrantyDto,
+  deliverOrderInput,
+  rejectOrderInput,
+  toman,
+  warrantyRefundInput,
+} from '@abis/shared';
+import { type Api, InlineKeyboard } from 'grammy';
 import { type Context, Hono } from 'hono';
 import { z } from 'zod';
+import { cb } from '../bot/keyboards.js';
 import { announceOrderDecision, orderProductLine } from '../bot/order-alerts.js';
+import { texts } from '../bot/texts.js';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import { getVariantWithProduct } from '../modules/catalog/index.js';
-import { getCustomersByIds, namesByTelegramId } from '../modules/customers/index.js';
+import { getCustomer, getCustomersByIds, namesByTelegramId } from '../modules/customers/index.js';
 import {
   type Order,
   type OrderDecision,
+  WarrantyError,
   deliverOrder,
+  getOrder,
+  getWarrantyInfo,
   listOrders,
   readCustomerInput,
   readDeliveryNote,
+  refundWarranty,
   rejectOrder,
 } from '../modules/orders/index.js';
 import { parseBody } from './body.js';
@@ -58,6 +72,58 @@ export function orderRoutes(db: Db, telegram: Api, cipher: Cipher): Hono<ApiEnv>
       c,
       await rejectOrder(db, { orderId: id(c), actor: actor(c), reason: input.data.reason }),
     );
+  });
+
+  routes.get('/orders/:id{[0-9]+}/warranty', async (c) => {
+    const order = await getOrder(db, id(c));
+    if (!order) return c.json<ApiError>({ error: 'not_found' }, 404);
+    const info = await getWarrantyInfo(db, order);
+    return c.json<WarrantyDto>({
+      orderId: order.id,
+      status: order.status,
+      totalToman: order.totalToman,
+      warrantyEndsAt: info.warrantyEndsAt?.toISOString() ?? null,
+      underWarranty: info.underWarranty,
+      suggestedRefundToman: info.suggestedRefund,
+      alreadyRefunded: info.alreadyRefunded,
+    });
+  });
+
+  routes.post('/orders/:id{[0-9]+}/warranty-refund', async (c) => {
+    const input = await parseBody(c, warrantyRefundInput);
+    if (!input.ok) return input.response;
+    try {
+      const { order, balance } = await refundWarranty(db, {
+        orderId: id(c),
+        actor: actor(c),
+        amount: toman(input.data.amountToman),
+        reason: input.data.reason,
+      });
+      const customer = await getCustomer(db, order.customerId);
+      if (customer) {
+        await telegram
+          .sendMessage(
+            customer.telegramId,
+            texts.warrantyRefunded(
+              order.id,
+              toman(input.data.amountToman),
+              input.data.reason,
+              balance,
+            ),
+            {
+              parse_mode: 'HTML',
+              reply_markup: new InlineKeyboard().text(texts.buttons.home, cb.home),
+            },
+          )
+          .catch((error: unknown) => console.error('Could not notify customer:', error));
+      }
+      return c.json({ balanceToman: balance });
+    } catch (error) {
+      if (error instanceof WarrantyError) {
+        return c.json<ApiError>({ error: 'invalid_input', message: error.message }, 400);
+      }
+      throw error;
+    }
   });
 
   return routes;
