@@ -1,0 +1,3 @@
+# Admin work happens in the bot chat first; the web panel is secondary
+
+The owners found that Telegram Mini Apps often fail to load for them, so daily admin work moves into the bot chat: alerts carry action buttons (approve/reject top-ups, deliver/reject orders), tickets are answered by replying to their alert, and an `/admin` menu covers the rest. The React panel stays for heavy editing (creating catalog entries, long descriptions, history) and opens in a normal browser through a one-time link from `/panel`; the Mini App entry is kept for admins whose Telegram loads it. Business logic is unchanged — both surfaces call the same modules.

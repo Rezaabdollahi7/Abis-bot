@@ -30,7 +30,10 @@ export const supportCb = {
 const backHome = () =>
   new InlineKeyboard().text(texts.buttons.back, cb.support).text(texts.buttons.home, cb.home);
 
-/** Tells every admin about a new ticket or a new customer message in one. */
+/**
+ * Tells every admin about a new ticket or a new customer message in one.
+ * Attachments are copied to each admin too; both messages accept a Reply as the answer.
+ */
 export async function alertAdminsOfTicket(
   api: Api,
   db: Db,
@@ -54,7 +57,18 @@ export async function alertAdminsOfTicket(
       text: message.text ?? null,
       hasFile: Boolean(message.fileId),
     }),
+    new InlineKeyboard().text(texts.buttons.closeTicketAdmin, `tk:ac:${ticket.id}`),
   );
+  if (message.fileId) {
+    for (const { chatId } of [...sent]) {
+      const caption = `📎 تیکت #${ticket.id}`;
+      const file =
+        message.fileKind === 'photo'
+          ? await api.sendPhoto(chatId, message.fileId, { caption }).catch(() => undefined)
+          : await api.sendDocument(chatId, message.fileId, { caption }).catch(() => undefined);
+      if (file) sent.push({ chatId, messageId: file.message_id });
+    }
+  }
   await recordNotifications(db, { type: 'ticket', id: ticket.id }, sent);
 }
 

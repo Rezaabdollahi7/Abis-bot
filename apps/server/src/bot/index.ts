@@ -6,6 +6,7 @@ import { registerCustomer } from '../modules/customers/index.js';
 import { listActiveSubscriptions } from '../modules/orders/index.js';
 import { getSettings } from '../modules/settings/index.js';
 import { getBalance, listLedger } from '../modules/wallet/index.js';
+import { adminOpsComposer } from './admin-ops.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
 import { sessionStorage } from './session.js';
@@ -55,8 +56,9 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
     }),
   );
 
-  // Admin alert buttons work regardless of forced join.
+  // Admin alert buttons and chat admin work regardless of forced join.
   pm.use(topupAlertComposer(db, config.OWNER_TELEGRAM_IDS));
+  pm.use(adminOpsComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
 
   // Banned customers keep their wallet but can't use the bot.
   pm.use(async (ctx, next) => {

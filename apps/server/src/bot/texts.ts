@@ -261,6 +261,16 @@ export const texts = {
       ...(args.input.password ? ['🔑 رمز در پنل قابل مشاهده است'] : []),
       ...(args.input.note && args.input.note !== '-' ? [`📝 ${escapeHtml(args.input.note)}`] : []),
     ].join('\n'),
+  askDeliveryNote: (orderId: number) =>
+    `📦 پیام تحویل سفارش #${faNumber.format(orderId)} را بفرستید (لینک، مشخصات اکانت یا توضیح فعال‌سازی).\nهمین پیام عیناً برای مشتری ارسال می‌شود. برای لغو /cancel`,
+  orderDeliveredByYou: (orderId: number) =>
+    `✅ سفارش #${faNumber.format(orderId)} تحویل شد و به مشتری ارسال شد.`,
+  orderAlreadyHandled: 'این سفارش قبلاً بررسی شده است.',
+  passwordPopup: (password: string) => `🔑 رمز مشتری:\n${password}`,
+  passwordGone: 'رمز موجود نیست (پاک شده یا وارد نشده).',
+  ticketReplySent: (ticketId: number) =>
+    `✅ پاسخ برای مشتری (تیکت #${faNumber.format(ticketId)}) ارسال شد.`,
+  adminCancelled: 'لغو شد.',
   lowStockAlert: (productLine: string, left: number) =>
     `⚠️ <b>موجودی رو به اتمام</b>\n${escapeHtml(productLine)}\nباقی‌مانده: ${faNumber.format(left)}`,
 
@@ -312,7 +322,9 @@ export const texts = {
       `👤 ${escapeHtml(args.customerName)}${args.username ? ` (@${escapeHtml(args.username)})` : ''}`,
       '',
       ...(args.text ? [escapeHtml(args.text.slice(0, 1000))] : []),
-      ...(args.hasFile ? ['📎 فایل پیوست — در پنل قابل مشاهده است'] : []),
+      ...(args.hasFile ? ['📎 فایل پیوست (در پیام بعدی)'] : []),
+      '',
+      '↩️ برای پاسخ، روی همین پیام Reply بزنید.',
     ].join('\n'),
 
   // ── Top-up (customer) ──
@@ -436,6 +448,10 @@ export const texts = {
     topupShortfall: (shortfall: Toman) => `💳 شارژ ${formatToman(shortfall)}`,
     quantity: (n: number) => faNumber.format(n),
     renew: '🔁 تمدید',
+    deliver: '📦 تحویل',
+    rejectRefund: '❌ رد و بازپرداخت',
+    showPassword: '🔑 نمایش رمز',
+    closeTicketAdmin: '🔒 بستن تیکت',
     newTicket: '➕ تیکت جدید',
     replyTicket: '✍️ پاسخ',
     closeTicket: '🔒 بستن تیکت',
@@ -445,6 +461,13 @@ export const texts = {
 } as const;
 
 export { topupRejectReasons } from '@abis/shared';
+
+/** Preset reasons for rejecting a manual order from the chat alert. */
+export const orderRejectReasons = [
+  'موجودی این سرویس فعلاً تمام شده است',
+  'امکان فعال‌سازی روی این ایمیل وجود ندارد',
+  'اطلاعات واردشده نادرست است',
+] as const;
 
 /** Escapes user-controlled text for parse_mode HTML. */
 export function escapeHtml(value: string): string {
