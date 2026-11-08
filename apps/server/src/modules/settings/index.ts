@@ -17,6 +17,8 @@ const settingsSchema = z.object({
   /** Top-up limits in Toman. */
   topupMinToman: z.number().int().positive().default(50_000),
   topupMaxToman: z.number().int().positive().default(50_000_000),
+  /** Alert admins when a variant's stock drops to this many items. */
+  lowStockThreshold: z.number().int().min(0).default(3),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;

@@ -44,6 +44,7 @@ export const settingsPatch = z
     requirePhone: z.boolean(),
     topupMinToman: z.number().int().positive(),
     topupMaxToman: z.number().int().positive(),
+    lowStockThreshold: z.number().int().min(0),
   })
   .partial();
 export type SettingsPatch = z.infer<typeof settingsPatch>;
@@ -53,6 +54,7 @@ export interface SettingsDto {
   requirePhone: boolean;
   topupMinToman: number;
   topupMaxToman: number;
+  lowStockThreshold: number;
 }
 
 export interface SettingsResponse {

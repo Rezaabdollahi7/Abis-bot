@@ -12,7 +12,7 @@ const cipher = createCipher(config.ENCRYPTION_KEY);
 const { db } = connectDb(config.DATABASE_URL);
 await runMigrations(db);
 
-const bot = createBot({ db, config });
+const bot = createBot({ db, cipher, config });
 
 const app = new Hono();
 app.get('/health', (c) => c.json({ ok: true }));

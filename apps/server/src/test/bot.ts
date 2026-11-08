@@ -1,6 +1,7 @@
 import type { Update, UserFromGetMe } from 'grammy/types';
 import type { Db } from '../db/client.js';
 import { createBot } from '../bot/index.js';
+import { testCipher } from './cipher.js';
 
 export interface ApiCall {
   method: string;
@@ -32,6 +33,7 @@ export function createTestBot(
 ) {
   const bot = createBot({
     db,
+    cipher: testCipher,
     config: {
       BOT_TOKEN: 'test-token',
       CHANNEL_ID: options.channelId,

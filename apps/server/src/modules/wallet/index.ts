@@ -18,6 +18,30 @@ export async function getBalance(db: Executor, customerId: number): Promise<Toma
   return toman(row?.total ?? 0);
 }
 
+/** Appends a ledger entry inside a caller's transaction (purchases, refunds). */
+export async function recordLedgerEntry(
+  tx: Executor,
+  entry: {
+    customerId: number;
+    amount: Toman;
+    kind: 'purchase' | 'refund';
+    refType: string;
+    refId: number;
+    reason?: string | undefined;
+    createdByAdminTelegramId?: number | undefined;
+  },
+): Promise<void> {
+  await tx.insert(ledgerEntries).values({
+    customerId: entry.customerId,
+    amountToman: entry.amount,
+    kind: entry.kind,
+    refType: entry.refType,
+    refId: entry.refId,
+    reason: entry.reason ?? null,
+    createdByAdminTelegramId: entry.createdByAdminTelegramId ?? null,
+  });
+}
+
 // ── Top-ups ───────────────────────────────────────────────────────────────────
 
 export async function createTopup(

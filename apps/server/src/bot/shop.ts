@@ -96,11 +96,6 @@ export function shopComposer(db: Db): Composer<BotContext> {
     await show(ctx, texts.variantCard(view), variantKeyboard(view.variant.id, view.product.id));
   });
 
-  // Purchase lands in ROADMAP phase 3.
-  shop.callbackQuery(shopCbPattern.buy, (ctx) =>
-    ctx.answerCallbackQuery({ text: texts.comingSoon, show_alert: true }),
-  );
-
   return shop;
 }
 

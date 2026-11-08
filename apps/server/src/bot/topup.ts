@@ -117,6 +117,18 @@ export function topupComposer(db: Db, ownerIds: readonly number[]): Composer<Bot
     if (ctx.session.step !== 'amount') return start(ctx);
     await chooseAmount(ctx, toman(Number(ctx.match[1])));
   });
+  // "Top up the shortfall" from a pre-invoice: skip the amount question when possible.
+  topup.callbackQuery(/^tq:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const settings = await getSettings(db);
+    if (settings.requirePhone && !ctx.customer.phone) return start(ctx);
+    const amount = Math.min(
+      Math.max(Number(ctx.match[1]), settings.topupMinToman),
+      settings.topupMaxToman,
+    );
+    await chooseAmount(ctx, toman(amount));
+  });
+
   topup.callbackQuery(topupCb.cancel, async (ctx) => {
     await ctx.answerCallbackQuery();
     await cancel(ctx);

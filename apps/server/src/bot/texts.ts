@@ -1,5 +1,6 @@
 // Every Persian string the bot shows lives here (RULES.md #14).
 import { type LedgerKind, type Toman, formatToman, toman } from '@abis/shared';
+import type { RequiredFieldName } from '@abis/shared';
 import type { DeliveryMethod, VariantView } from '../modules/catalog/index.js';
 
 /** Working brand name until the final one is chosen. */
@@ -120,6 +121,101 @@ export const texts = {
   durationButton: (view: VariantView) =>
     `${formatDuration(view.variant.durationDays)} · ${formatToman(view.variant.priceToman)}`,
 
+  // ── Purchase ──
+  chooseQuantity: (name: string, stock: number) =>
+    `🛒 <b>${escapeHtml(name)}</b>\n\nچند عدد می‌خواهید؟ (موجودی: ${faNumber.format(stock)})`,
+  askField: {
+    email: '📧 ایمیل اکانتی که اشتراک باید روی آن فعال شود را بفرستید:',
+    password:
+      '🔑 رمز عبور همان اکانت را بفرستید.\n<i>رمز به صورت رمزنگاری‌شده نگهداری و ۷ روز پس از تحویل حذف می‌شود. پیام شما هم بلافاصله پاک می‌شود.</i>',
+    note: '📝 اگر توضیحی برای فعال‌سازی دارید بنویسید (وگرنه «-» بفرستید):',
+  } satisfies Record<RequiredFieldName, string>,
+  invalidField: {
+    email: '❗️ ایمیل معتبر نیست. دوباره بفرستید:',
+    password: '❗️ رمز نمی‌تواند خالی باشد. دوباره بفرستید:',
+    note: '❗️ لطفاً یک توضیح یا «-» بفرستید:',
+  } satisfies Record<RequiredFieldName, string>,
+  confirmOrder: (args: {
+    view: VariantView;
+    quantity: number;
+    total: Toman;
+    balance: Toman;
+    values: Partial<Record<RequiredFieldName, string>>;
+  }) => {
+    const { view, quantity, total, balance, values } = args;
+    const lines = [
+      '🧾 <b>پیش‌فاکتور</b>',
+      '',
+      `${view.provider.emoji} ${escapeHtml(view.product.name)} · ${formatDuration(view.variant.durationDays)}`,
+      `تعداد: ${faNumber.format(quantity)}`,
+      `مبلغ: <b>${formatToman(total)}</b>`,
+    ];
+    if (values.email) lines.push(`📧 ایمیل: <code>${escapeHtml(values.email)}</code>`);
+    if (values.password) lines.push('🔑 رمز: ••••••');
+    if (values.note && values.note !== '-') lines.push(`📝 توضیح: ${escapeHtml(values.note)}`);
+    lines.push('', `💰 موجودی کیف پول: ${formatToman(balance)}`);
+    if (balance < total) {
+      lines.push(
+        '',
+        `❗️ موجودی کافی نیست. <b>${formatToman(toman(total - balance))}</b> کم دارید.`,
+      );
+    }
+    return lines.join('\n');
+  },
+  orderDelivered: (orderId: number, name: string, balance: Toman) =>
+    [
+      `✅ <b>سفارش #${faNumber.format(orderId)} تحویل شد</b> — ${escapeHtml(name)}`,
+      '',
+      'اطلاعات اکانت در پیام بعدی است. آن را در جای امنی نگه دارید.',
+      '',
+      `موجودی فعلی: ${formatToman(balance)}`,
+    ].join('\n'),
+  deliveredItems: (items: string[]) =>
+    items
+      .map(
+        (item, i) =>
+          `${items.length > 1 ? `<b>${faNumber.format(i + 1)})</b>\n` : ''}<pre>${escapeHtml(item)}</pre>`,
+      )
+      .join('\n'),
+  orderQueued: (orderId: number, name: string, etaMinutes: number | null, balance: Toman) =>
+    [
+      `✅ <b>سفارش #${faNumber.format(orderId)} ثبت شد</b> — ${escapeHtml(name)}`,
+      '',
+      `⏱ در صف تحویل است${etaMinutes ? ` و حدود ${faNumber.format(etaMinutes)} دقیقه‌ی دیگر انجام می‌شود` : ''}. نتیجه همین‌جا اطلاع داده می‌شود.`,
+      '',
+      `موجودی فعلی: ${formatToman(balance)}`,
+    ].join('\n'),
+  notEnoughStock: (available: number) =>
+    `فقط ${faNumber.format(available)} عدد موجود است. لطفاً تعداد کمتری انتخاب کنید.`,
+  confirmExpired: 'این پیش‌فاکتور منقضی شده است. لطفاً دوباره از فروشگاه انتخاب کنید.',
+  alreadyOrdered: 'این سفارش قبلاً ثبت شده است.',
+
+  // ── Order alerts (admin) ──
+  orderAlert: (args: {
+    orderId: number;
+    productLine: string;
+    quantity: number;
+    total: Toman;
+    customerName: string;
+    username: string | null;
+    telegramId: number;
+    input: Partial<Record<RequiredFieldName, string>>;
+    outOfStock: boolean;
+  }) =>
+    [
+      `🛒 <b>سفارش #${faNumber.format(args.orderId)} — نیاز به تحویل دستی</b>`,
+      ...(args.outOfStock ? ['⚠️ <i>انبار خالی بود</i>'] : []),
+      '',
+      `${escapeHtml(args.productLine)} × ${faNumber.format(args.quantity)}`,
+      `💰 ${formatToman(args.total)}`,
+      `👤 ${escapeHtml(args.customerName)}${args.username ? ` (@${escapeHtml(args.username)})` : ''} — <code>${args.telegramId}</code>`,
+      ...(args.input.email ? [`📧 <code>${escapeHtml(args.input.email)}</code>`] : []),
+      ...(args.input.password ? ['🔑 رمز در پنل قابل مشاهده است'] : []),
+      ...(args.input.note && args.input.note !== '-' ? [`📝 ${escapeHtml(args.input.note)}`] : []),
+    ].join('\n'),
+  lowStockAlert: (productLine: string, left: number) =>
+    `⚠️ <b>موجودی رو به اتمام</b>\n${escapeHtml(productLine)}\nباقی‌مانده: ${faNumber.format(left)}`,
+
   // ── Top-up (customer) ──
   topupUnavailable: '💳 شارژ کیف پول موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.',
   askPhone:
@@ -236,6 +332,9 @@ export const texts = {
     approve: (amount: Toman) => `✅ تأیید ${formatToman(amount)}`,
     reject: '❌ رد',
     amount: (amount: Toman) => formatToman(amount),
+    pay: (total: Toman) => `✅ پرداخت ${formatToman(total)} و خرید`,
+    topupShortfall: (shortfall: Toman) => `💳 شارژ ${formatToman(shortfall)}`,
+    quantity: (n: number) => faNumber.format(n),
   },
 } as const;
 
