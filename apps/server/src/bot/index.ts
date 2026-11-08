@@ -6,6 +6,7 @@ import { getSettings } from '../modules/settings/index.js';
 import { getBalance } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
+import { shopComposer } from './shop.js';
 import { texts } from './texts.js';
 
 export interface BotDeps {
@@ -80,8 +81,10 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
     );
   });
 
+  pm.use(shopComposer(db));
+
   // Placeholders until their roadmap items land.
-  pm.callbackQuery([cb.shop, cb.topup, cb.support], (ctx) =>
+  pm.callbackQuery([cb.topup, cb.support], (ctx) =>
     ctx.answerCallbackQuery({ text: texts.comingSoon, show_alert: true }),
   );
 
