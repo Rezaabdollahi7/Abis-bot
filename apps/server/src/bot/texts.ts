@@ -101,6 +101,85 @@ export const texts = {
   durationButton: (view: VariantView) =>
     `${formatDuration(view.variant.durationDays)} · ${formatToman(view.variant.priceToman)}`,
 
+  // ── Top-up (customer) ──
+  topupUnavailable: '💳 شارژ کیف پول موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.',
+  askPhone:
+    '📱 برای اولین شارژ، لطفاً شماره موبایل خود را با دکمه‌ی زیر ارسال کنید.\n(این شماره فقط برای پیگیری واریزها استفاده می‌شود.)',
+  phoneNotYours: 'لطفاً شماره‌ی خودتان را با دکمه‌ی «ارسال شماره» بفرستید.',
+  phoneSaved: '✅ شماره‌ی شما ثبت شد.',
+  askAmount: (min: Toman, max: Toman) =>
+    [
+      '💳 <b>شارژ کیف پول</b>',
+      '',
+      `مبلغ شارژ را به <b>تومان</b> بنویسید (از ${formatToman(min)} تا ${formatToman(max)})، یا یکی از گزینه‌ها را انتخاب کنید:`,
+    ].join('\n'),
+  amountInvalid: (min: Toman, max: Toman) =>
+    `❗️ مبلغ باید عددی بین ${formatToman(min)} و ${formatToman(max)} باشد. دوباره بنویسید:`,
+  payToCard: (amount: Toman, card: { number: string; holderName: string; bankName: string }) =>
+    [
+      `💳 لطفاً مبلغ <b>${formatToman(amount)}</b> را به کارت زیر واریز کنید:`,
+      '',
+      `<code>${card.number.replace(/(\d{4})(?=\d)/g, '$1-')}</code>`,
+      `به نام: <b>${escapeHtml(card.holderName)}</b> — بانک ${escapeHtml(card.bankName)}`,
+      '',
+      '📸 سپس <b>اسکرین‌شات رسید</b> را همین‌جا بفرستید.',
+    ].join('\n'),
+  receiptExpected: '📸 لطفاً تصویر رسید واریز را بفرستید، یا «انصراف» را بزنید.',
+  receiptSaved: (topupId: number) =>
+    `✅ رسید شما ثبت شد (درخواست #${faNumber.format(topupId)}).\nپس از بررسی توسط پشتیبانی، نتیجه همین‌جا اعلام می‌شود.`,
+  topupApproved: (topupId: number, amount: Toman, claimed: Toman, balance: Toman) =>
+    [
+      `✅ شارژ #${faNumber.format(topupId)} تأیید شد.`,
+      `💰 مبلغ ${formatToman(amount)} به کیف پول شما اضافه شد.`,
+      ...(amount !== claimed
+        ? [`(مبلغ اعلام‌شده ${formatToman(claimed)} بود و بر اساس واریز واقعی اصلاح شد.)`]
+        : []),
+      '',
+      `موجودی فعلی: <b>${formatToman(balance)}</b>`,
+    ].join('\n'),
+  topupRejected: (topupId: number, reason: string) =>
+    [
+      `❌ درخواست شارژ #${faNumber.format(topupId)} تأیید نشد.`,
+      `دلیل: ${escapeHtml(reason)}`,
+      '',
+      'اگر فکر می‌کنید اشتباهی رخ داده، از بخش پشتیبانی پیام بدهید.',
+    ].join('\n'),
+  cancelled: 'لغو شد.',
+
+  // ── Top-up (admin alert) ──
+  topupAlert: (args: {
+    topupId: number;
+    customerName: string;
+    username: string | null;
+    telegramId: number;
+    phone: string | null;
+    amount: Toman;
+    cardLabel: string;
+    duplicateOf: number | null;
+    status: string | null;
+  }) =>
+    [
+      `💳 <b>درخواست شارژ #${faNumber.format(args.topupId)}</b>`,
+      '',
+      `👤 ${escapeHtml(args.customerName)}${args.username ? ` (@${escapeHtml(args.username)})` : ''} — <code>${args.telegramId}</code>`,
+      `📱 ${args.phone ?? 'شماره ثبت نشده'}`,
+      `💰 مبلغ اعلامی: <b>${formatToman(args.amount)}</b>`,
+      `🏦 کارت مقصد: ${escapeHtml(args.cardLabel)}`,
+      ...(args.duplicateOf
+        ? [
+            '',
+            `⚠️ <b>این تصویر قبلاً در درخواست #${faNumber.format(args.duplicateOf)} ارسال شده است!</b>`,
+          ]
+        : []),
+      ...(args.status ? ['', args.status] : []),
+    ].join('\n'),
+  topupStatusApproved: (admin: string, amount: Toman) =>
+    `✅ <b>تأیید شد</b> توسط ${escapeHtml(admin)} — ${formatToman(amount)}`,
+  topupStatusRejected: (admin: string, reason: string) =>
+    `❌ <b>رد شد</b> توسط ${escapeHtml(admin)} — ${escapeHtml(reason)}`,
+  alreadyHandled: 'این درخواست قبلاً بررسی شده است.',
+  notAdmin: 'شما دسترسی ادمین ندارید.',
+
   joinRequired: (channelUrl: string) =>
     [
       '📢 برای استفاده از ربات، ابتدا در کانال ما عضو شوید.',
@@ -124,8 +203,21 @@ export const texts = {
     back: '🔙 بازگشت',
     buy: '🛒 خرید',
     refresh: '🔄',
+    sendPhone: '📱 ارسال شماره',
+    cancel: '❌ انصراف',
+    approve: (amount: Toman) => `✅ تأیید ${formatToman(amount)}`,
+    reject: '❌ رد',
+    amount: (amount: Toman) => formatToman(amount),
   },
 } as const;
+
+/** Preset reasons an admin can pick when rejecting a top-up from the chat alert. */
+export const topupRejectReasons = [
+  'واریزی با این مشخصات پیدا نشد',
+  'مبلغ واریزی با مبلغ اعلام‌شده مغایرت دارد',
+  'تصویر رسید نامعتبر یا ناخوانا است',
+  'این رسید تکراری است',
+] as const;
 
 /** Escapes user-controlled text for parse_mode HTML. */
 export function escapeHtml(value: string): string {

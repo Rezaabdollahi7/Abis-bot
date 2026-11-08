@@ -21,3 +21,9 @@ export async function resolveAdmin(
 export async function addAdmin(db: Db, telegramId: number, addedBy: number): Promise<void> {
   await db.insert(admins).values({ telegramId, addedByTelegramId: addedBy }).onConflictDoNothing();
 }
+
+/** Everyone who should receive admin alerts: owners plus added admins. */
+export async function listAdminTelegramIds(db: Db, ownerIds: readonly number[]): Promise<number[]> {
+  const rows = await db.select({ telegramId: admins.telegramId }).from(admins);
+  return [...new Set([...ownerIds, ...rows.map((r) => r.telegramId)])];
+}

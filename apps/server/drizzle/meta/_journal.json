@@ -43,6 +43,13 @@
       "when": 1794165524758,
       "tag": "0005_bank_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794165750665,
+      "tag": "0006_topups_sessions_notifications",
+      "breakpoints": true
     }
   ]
 }
