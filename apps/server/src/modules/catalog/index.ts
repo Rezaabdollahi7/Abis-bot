@@ -73,6 +73,24 @@ export async function getVariantView(db: Db, variantId: number): Promise<Variant
   return views[0];
 }
 
+/** A variant with its product regardless of active flags (admin and order processing). */
+export async function getVariantWithProduct(
+  db: Executor,
+  variantId: number,
+): Promise<{ variant: Variant; product: Product } | undefined> {
+  const [row] = await db
+    .select({ variant: variants, product: products })
+    .from(variants)
+    .innerJoin(products, eq(variants.productId, products.id))
+    .where(eq(variants.id, variantId));
+  return (
+    row && {
+      variant: { ...row.variant, priceToman: toman(row.variant.priceToman) },
+      product: row.product,
+    }
+  );
+}
+
 /** Variants of featured products for the shop front page, paginated. */
 export async function listFeaturedVariants(
   db: Db,

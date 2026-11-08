@@ -2,6 +2,7 @@ import { toman } from '@abis/shared';
 import type { Db } from '../db/client.js';
 import { createProduct, createProvider, createVariant } from '../modules/catalog/index.js';
 import { stockItems } from '../modules/stock/schema.js';
+import { testCipher } from './cipher.js';
 
 /** A small catalog: OpenAI (email, featured) and Google (link with 2 stock items). */
 export async function seedTestCatalog(db: Db) {
@@ -54,9 +55,13 @@ export async function seedTestCatalog(db: Db) {
   });
 
   await db.insert(stockItems).values([
-    { variantId: gemini12m.id, payloadEncrypted: 'x' },
-    { variantId: gemini12m.id, payloadEncrypted: 'y' },
-    { variantId: gemini12m.id, payloadEncrypted: 'z', status: 'sold' },
+    { variantId: gemini12m.id, payloadEncrypted: testCipher.encrypt('https://gemini.example/a') },
+    { variantId: gemini12m.id, payloadEncrypted: testCipher.encrypt('https://gemini.example/b') },
+    {
+      variantId: gemini12m.id,
+      payloadEncrypted: testCipher.encrypt('https://gemini.example/sold'),
+      status: 'sold',
+    },
   ]);
 
   return { openai, google, chatgpt, gemini, chatgpt1m, chatgpt3m, gemini12m };

@@ -10,11 +10,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api';
 import { fa, formatDuration } from '../ui';
 import { ProductForm, ProviderForm, VariantForm, deliveryLabels } from './forms';
+import { StockDialog } from './StockDialog';
 
 type Editing =
   | { kind: 'provider'; provider?: CatalogProviderDto }
   | { kind: 'product'; providerId: number; product?: CatalogProductDto }
-  | { kind: 'variant'; productId: number; variant?: CatalogVariantDto };
+  | { kind: 'variant'; productId: number; variant?: CatalogVariantDto }
+  | { kind: 'stock'; product: CatalogProductDto; variant: CatalogVariantDto };
 
 export function CatalogPage() {
   const [providers, setProviders] = useState<CatalogProviderDto[]>();
@@ -118,8 +120,18 @@ export function CatalogPage() {
                         <td>{formatDuration(variant.durationDays)}</td>
                         <td>{formatToman(toman(variant.priceToman))}</td>
                         <td>
-                          {variant.stock === null ? '—' : fa(variant.stock)}
-                          {variant.stock === 0 && ' ⚠️'}
+                          {variant.stock === null ? (
+                            '—'
+                          ) : (
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => setEditing({ kind: 'stock', product, variant })}
+                            >
+                              📦 {fa(variant.stock)}
+                              {variant.stock === 0 && ' ⚠️'}
+                            </button>
+                          )}
                         </td>
                         <td>{fa(variant.soldCount)}</td>
                         <td>
@@ -191,6 +203,15 @@ function EditDialog(props: { editing: Editing; onClose: () => void; onSaved: () 
         />
       );
     }
+    case 'stock':
+      return (
+        <StockDialog
+          variantId={editing.variant.id}
+          title={`${formatDuration(editing.variant.durationDays)} · ${editing.product.name}`}
+          deliveryMethod={editing.product.deliveryMethod}
+          onClose={onSaved}
+        />
+      );
     case 'variant': {
       const v = editing.variant;
       return (
