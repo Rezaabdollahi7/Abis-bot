@@ -5,6 +5,7 @@ import { InitDataError, validateInitData } from '../lib/init-data.js';
 import type { Config } from '../lib/config.js';
 import { type AdminIdentity, resolveAdmin } from '../modules/admins/index.js';
 import { catalogRoutes } from './catalog.js';
+import { settingsRoutes } from './settings.js';
 
 export interface ApiDeps {
   db: Db;
@@ -55,6 +56,7 @@ export function createApi({ db, config, now }: ApiDeps): Hono<ApiEnv> {
   });
 
   api.route('/', catalogRoutes(db));
+  api.route('/', settingsRoutes(db));
 
   return api;
 }

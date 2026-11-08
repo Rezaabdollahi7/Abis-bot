@@ -36,6 +36,13 @@
       "when": 1794164776302,
       "tag": "0004_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794165524758,
+      "tag": "0005_bank_cards",
+      "breakpoints": true
     }
   ]
 }

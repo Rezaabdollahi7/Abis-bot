@@ -179,3 +179,23 @@ th {
   flex-wrap: nowrap;
   flex-shrink: 0;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+.tabs button {
+  background: var(--surface);
+  color: var(--text);
+  white-space: nowrap;
+}
+.tabs button.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.mono {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.5px;
+}

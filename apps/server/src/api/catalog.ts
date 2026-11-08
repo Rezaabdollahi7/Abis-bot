@@ -6,9 +6,9 @@ import {
   variantInput,
 } from '@abis/shared';
 import { type Context, Hono } from 'hono';
-import type { z } from 'zod';
 import type { Db } from '../db/client.js';
 import { catalogAdmin, getFullCatalog } from '../modules/catalog/index.js';
+import { parseBody } from './body.js';
 import type { ApiEnv } from './index.js';
 
 /** Catalog management. Rows are deactivated, never deleted (orders will reference them). */
@@ -60,17 +60,4 @@ export function catalogRoutes(db: Db): Hono<ApiEnv> {
 
 function found(c: Context<ApiEnv>, row: object | undefined) {
   return row ? c.json(row) : c.json<ApiError>({ error: 'not_found' }, 404);
-}
-
-async function parseBody<T extends z.ZodType>(
-  c: Context<ApiEnv>,
-  schema: T,
-): Promise<{ ok: true; data: z.infer<T> } | { ok: false; response: Response }> {
-  const body: unknown = await c.req.json().catch(() => undefined);
-  const result = schema.safeParse(body);
-  if (result.success) return { ok: true, data: result.data };
-  return {
-    ok: false,
-    response: c.json<ApiError>({ error: 'invalid_input', message: result.error.message }, 400),
-  };
 }

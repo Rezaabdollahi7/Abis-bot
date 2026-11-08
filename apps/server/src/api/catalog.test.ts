@@ -1,32 +1,14 @@
 import type { CatalogResponse } from '@abis/shared';
 import { describe, expect, it } from 'vitest';
-import { signInitData } from '../lib/init-data.js';
 import { listRecentAudit } from '../modules/audit/index.js';
 import { listShopProviders } from '../modules/catalog/index.js';
+import { TEST_OWNER_ID, adminClient } from '../test/api.js';
 import { useTestDb } from '../test/db.js';
 import { seedTestCatalog } from '../test/fixtures.js';
-import { createApi } from './index.js';
 
 const getDb = useTestDb();
-const TOKEN = '123:secret';
-const OWNER = 1;
-
-function client() {
-  const api = createApi({ db: getDb(), config: { BOT_TOKEN: TOKEN, OWNER_TELEGRAM_IDS: [OWNER] } });
-  const initData = signInitData(
-    {
-      auth_date: String(Math.floor(Date.now() / 1000)),
-      user: JSON.stringify({ id: OWNER, first_name: 'Reza' }),
-    },
-    TOKEN,
-  );
-  const headers = { Authorization: `tma ${initData}`, 'Content-Type': 'application/json' };
-  return {
-    get: (path: string) => api.request(path, { headers }),
-    send: (method: 'POST' | 'PATCH', path: string, body: unknown) =>
-      api.request(path, { method, headers, body: JSON.stringify(body) }),
-  };
-}
+const OWNER = TEST_OWNER_ID;
+const client = () => adminClient(getDb());
 
 describe('catalog admin API', () => {
   it('returns the full tree including inactive rows and stock', async () => {

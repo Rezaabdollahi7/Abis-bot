@@ -2,6 +2,7 @@ import type { MeResponse } from '@abis/shared';
 import { useEffect, useState } from 'react';
 import { ApiRequestError, apiFetch } from './api';
 import { CatalogPage } from './catalog/CatalogPage';
+import { SettingsPage } from './settings/SettingsPage';
 import { initData, telegramWebApp } from './telegram';
 
 type State =
@@ -10,6 +11,40 @@ type State =
   | { kind: 'denied' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; me: MeResponse };
+
+const tabs = [
+  { id: 'catalog', label: 'کاتالوگ', Page: CatalogPage },
+  { id: 'settings', label: 'تنظیمات', Page: SettingsPage },
+] as const;
+type TabId = (typeof tabs)[number]['id'];
+
+function Panel(props: { me: MeResponse }) {
+  const [tab, setTab] = useState<TabId>('catalog');
+  const Page = tabs.find((t) => t.id === tab)?.Page ?? CatalogPage;
+  return (
+    <>
+      <header className="top">
+        <h1>پنل ادمین</h1>
+        <span className="muted">
+          {props.me.firstName} {props.me.isOwner && <span className="badge">مالک</span>}
+        </span>
+      </header>
+      <nav className="tabs">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={t.id === tab ? 'active' : ''}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      <Page />
+    </>
+  );
+}
 
 export function App() {
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -46,16 +81,6 @@ function render(state: State) {
     case 'error':
       return <p>خطا در ارتباط با سرور: {state.message}</p>;
     case 'ready':
-      return (
-        <>
-          <header className="top">
-            <h1>پنل ادمین</h1>
-            <span className="muted">
-              {state.me.firstName} {state.me.isOwner && <span className="badge">مالک</span>}
-            </span>
-          </header>
-          <CatalogPage />
-        </>
-      );
+      return <Panel me={state.me} />;
   }
 }
