@@ -35,6 +35,7 @@ Defined in `.env.example` (source of truth). On the server, copy to `.env` and f
 | `POSTGRES_PASSWORD`  | DB password                                                                                                                |
 | `ENCRYPTION_KEY`     | 32 random bytes, base64 — **losing it makes stock and backups unreadable; store a copy in both owners' password managers** |
 | `BACKUP_PASSPHRASE`  | passphrase for encrypting nightly dumps; store with the key                                                                |
+| `HTTPS_PROXY`        | optional; send Bot API requests through this proxy (not needed on a server outside Iran)                                   |
 
 Generate secrets:
 
