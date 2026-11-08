@@ -1,5 +1,5 @@
 // Every Persian string the bot shows lives here (RULES.md #14).
-import { type Toman, formatToman } from '@abis/shared';
+import { type LedgerKind, type Toman, formatToman, toman } from '@abis/shared';
 import type { DeliveryMethod, VariantView } from '../modules/catalog/index.js';
 
 /** Working brand name until the final one is chosen. */
@@ -7,6 +7,14 @@ export const BRAND = 'Abis';
 
 const jalaliDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'long' });
 const faNumber = new Intl.NumberFormat('fa-IR');
+const shortDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'short', day: 'numeric' });
+
+const ledgerKindLabels: Record<LedgerKind, string> = {
+  topup: 'شارژ',
+  purchase: 'خرید',
+  refund: 'بازپرداخت',
+  adjustment: 'اصلاحیه',
+};
 
 /** 30 → «۱ ماهه», 360 → «۱۲ ماهه», 7 → «۷ روزه». */
 export function formatDuration(days: number): string {
@@ -46,6 +54,7 @@ export const texts = {
     balance: Toman;
     phone: string | null;
     memberSince: Date;
+    recent: { amountToman: number; kind: LedgerKind; createdAt: Date }[];
   }) =>
     [
       '👤 <b>حساب من</b>',
@@ -56,6 +65,16 @@ export const texts = {
       `📅 عضویت از: ${jalaliDate.format(args.memberSince)}`,
       '',
       `💰 موجودی: <b>${formatToman(args.balance)}</b>`,
+      ...(args.recent.length > 0
+        ? [
+            '',
+            '🧾 <b>تراکنش‌های اخیر</b>',
+            ...args.recent.map(
+              (e) =>
+                `${e.amountToman > 0 ? '➕' : '➖'} ${formatToman(toman(Math.abs(e.amountToman)))} · ${ledgerKindLabels[e.kind]} · ${shortDate.format(e.createdAt)}`,
+            ),
+          ]
+        : []),
     ].join('\n'),
 
   shop: (page: number, totalPages: number) =>
@@ -145,6 +164,15 @@ export const texts = {
       'اگر فکر می‌کنید اشتباهی رخ داده، از بخش پشتیبانی پیام بدهید.',
     ].join('\n'),
   cancelled: 'لغو شد.',
+  adjusted: (amount: Toman, reason: string, balance: Toman) =>
+    [
+      amount > 0
+        ? `💰 مبلغ ${formatToman(amount)} به کیف پول شما اضافه شد.`
+        : `💸 مبلغ ${formatToman(toman(-amount))} از کیف پول شما کسر شد.`,
+      `توضیح: ${escapeHtml(reason)}`,
+      '',
+      `موجودی فعلی: <b>${formatToman(balance)}</b>`,
+    ].join('\n'),
 
   // ── Top-up (admin alert) ──
   topupAlert: (args: {
@@ -211,13 +239,7 @@ export const texts = {
   },
 } as const;
 
-/** Preset reasons an admin can pick when rejecting a top-up from the chat alert. */
-export const topupRejectReasons = [
-  'واریزی با این مشخصات پیدا نشد',
-  'مبلغ واریزی با مبلغ اعلام‌شده مغایرت دارد',
-  'تصویر رسید نامعتبر یا ناخوانا است',
-  'این رسید تکراری است',
-] as const;
+export { topupRejectReasons } from '@abis/shared';
 
 /** Escapes user-controlled text for parse_mode HTML. */
 export function escapeHtml(value: string): string {

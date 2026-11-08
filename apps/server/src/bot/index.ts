@@ -3,7 +3,7 @@ import type { Db } from '../db/client.js';
 import type { Config } from '../lib/config.js';
 import { registerCustomer } from '../modules/customers/index.js';
 import { getSettings } from '../modules/settings/index.js';
-import { getBalance } from '../modules/wallet/index.js';
+import { getBalance, listLedger } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
 import { sessionStorage } from './session.js';
@@ -92,6 +92,7 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
         balance: await getBalance(db, customer.id),
         phone: customer.phone,
         memberSince: customer.createdAt,
+        recent: await listLedger(db, customer.id, 5),
       }),
       { parse_mode: 'HTML', reply_markup: homeOnly() },
     );

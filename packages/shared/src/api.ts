@@ -10,6 +10,6 @@ export interface MeResponse {
 }
 
 export interface ApiError {
-  error: 'unauthorized' | 'forbidden' | 'not_found' | 'invalid_input';
+  error: 'unauthorized' | 'forbidden' | 'not_found' | 'invalid_input' | 'conflict';
   message?: string;
 }

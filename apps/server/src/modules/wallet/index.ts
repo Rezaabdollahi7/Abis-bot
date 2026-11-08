@@ -1,10 +1,13 @@
 import { type Toman, toman } from '@abis/shared';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
+import { lockCustomer } from '../customers/index.js';
 import { ledgerEntries, topups } from './schema.js';
 
 export type Topup = typeof topups.$inferSelect;
+export type TopupStatus = Topup['status'];
+export type LedgerEntry = typeof ledgerEntries.$inferSelect;
 
 /** Balance = sum of the customer's ledger entries (ADR-0003). */
 export async function getBalance(db: Executor, customerId: number): Promise<Toman> {
@@ -133,4 +136,81 @@ export async function rejectTopup(
 async function reload(exec: Executor, id: number): Promise<Topup | undefined> {
   const [row] = await exec.select().from(topups).where(eq(topups.id, id));
   return row;
+}
+
+export async function getBalances(db: Db, customerIds: number[]): Promise<Map<number, Toman>> {
+  if (customerIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      customerId: ledgerEntries.customerId,
+      total: sql<number>`sum(${ledgerEntries.amountToman})`.mapWith(Number),
+    })
+    .from(ledgerEntries)
+    .where(inArray(ledgerEntries.customerId, customerIds))
+    .groupBy(ledgerEntries.customerId);
+  return new Map(rows.map((r) => [r.customerId, toman(r.total)]));
+}
+
+export async function listLedger(
+  db: Db,
+  customerId: number,
+  limit: number,
+): Promise<LedgerEntry[]> {
+  return db
+    .select()
+    .from(ledgerEntries)
+    .where(eq(ledgerEntries.customerId, customerId))
+    .orderBy(desc(ledgerEntries.id))
+    .limit(limit);
+}
+
+/** Pending: oldest first (work queue). Decided: newest first (history). */
+export async function listTopups(db: Db, status: TopupStatus, limit: number): Promise<Topup[]> {
+  return db
+    .select()
+    .from(topups)
+    .where(eq(topups.status, status))
+    .orderBy(status === 'pending' ? asc(topups.id) : desc(topups.handledAt))
+    .limit(limit);
+}
+
+export class AdjustmentError extends Error {}
+
+/**
+ * A manual ledger entry by an admin, always with a reason (RULES.md #2).
+ * Debits may not take the wallet below zero; the customer row is locked so
+ * a concurrent purchase cannot slip in between the check and the insert.
+ */
+export async function createAdjustment(
+  db: Db,
+  input: { customerId: number; amount: Toman; reason: string; actor: number },
+): Promise<{ entry: LedgerEntry; balance: Toman }> {
+  return db.transaction(async (tx) => {
+    if (!(await lockCustomer(tx, input.customerId))) {
+      throw new AdjustmentError('مشتری پیدا نشد');
+    }
+    const before = await getBalance(tx, input.customerId);
+    if (before + input.amount < 0) {
+      throw new AdjustmentError('موجودی کیف پول برای این کسر کافی نیست');
+    }
+    const [entry] = await tx
+      .insert(ledgerEntries)
+      .values({
+        customerId: input.customerId,
+        amountToman: input.amount,
+        kind: 'adjustment',
+        reason: input.reason,
+        createdByAdminTelegramId: input.actor,
+      })
+      .returning();
+    if (!entry) throw new Error('createAdjustment: insert returned no row');
+    await recordAudit(tx, {
+      adminTelegramId: input.actor,
+      action: 'wallet.adjust',
+      entityType: 'customer',
+      entityId: input.customerId,
+      data: { amount: input.amount, reason: input.reason },
+    });
+    return { entry, balance: toman(before + input.amount) };
+  });
 }

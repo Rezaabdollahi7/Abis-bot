@@ -1,8 +1,11 @@
 import type { MeResponse } from '@abis/shared';
 import { useEffect, useState } from 'react';
 import { ApiRequestError, apiFetch } from './api';
+import { AuditPage } from './audit/AuditPage';
 import { CatalogPage } from './catalog/CatalogPage';
+import { CustomersPage } from './customers/CustomersPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { TopupsPage } from './topups/TopupsPage';
 import { initData, telegramWebApp } from './telegram';
 
 type State =
@@ -13,14 +16,17 @@ type State =
   | { kind: 'ready'; me: MeResponse };
 
 const tabs = [
+  { id: 'topups', label: 'واریزها', Page: TopupsPage },
+  { id: 'customers', label: 'کاربران', Page: CustomersPage },
   { id: 'catalog', label: 'کاتالوگ', Page: CatalogPage },
   { id: 'settings', label: 'تنظیمات', Page: SettingsPage },
+  { id: 'audit', label: 'تاریخچه', Page: AuditPage },
 ] as const;
 type TabId = (typeof tabs)[number]['id'];
 
 function Panel(props: { me: MeResponse }) {
-  const [tab, setTab] = useState<TabId>('catalog');
-  const Page = tabs.find((t) => t.id === tab)?.Page ?? CatalogPage;
+  const [tab, setTab] = useState<TabId>('topups');
+  const Page = tabs.find((t) => t.id === tab)?.Page ?? TopupsPage;
   return (
     <>
       <header className="top">

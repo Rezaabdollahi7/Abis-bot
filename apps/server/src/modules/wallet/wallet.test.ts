@@ -4,7 +4,16 @@ import { useTestDb } from '../../test/db.js';
 import { listRecentAudit } from '../audit/index.js';
 import { registerCustomer } from '../customers/index.js';
 import { addBankCard } from '../settings/index.js';
-import { approveTopup, createTopup, getBalance, rejectTopup } from './index.js';
+import {
+  AdjustmentError,
+  approveTopup,
+  createAdjustment,
+  createTopup,
+  getBalance,
+  listLedger,
+  listTopups,
+  rejectTopup,
+} from './index.js';
 import { ledgerEntries } from './schema.js';
 
 const getDb = useTestDb();
@@ -107,5 +116,65 @@ describe('top-ups', () => {
       ok: false,
       topup: undefined,
     });
+  });
+});
+
+describe('adjustments', () => {
+  it('credits and debits with a reason and audits', async () => {
+    const { customer } = await setup();
+    await createAdjustment(getDb(), {
+      customerId: customer.id,
+      amount: toman(300_000),
+      reason: 'جبران تأخیر',
+      actor: ADMIN_A,
+    });
+    const { balance } = await createAdjustment(getDb(), {
+      customerId: customer.id,
+      amount: toman(-100_000),
+      reason: 'تسویه به کارت',
+      actor: ADMIN_A,
+    });
+    expect(balance).toBe(200_000);
+    expect((await listLedger(getDb(), customer.id, 10)).map((e) => e.reason)).toEqual([
+      'تسویه به کارت',
+      'جبران تأخیر',
+    ]);
+    expect((await listRecentAudit(getDb(), 1))[0]?.action).toBe('wallet.adjust');
+  });
+
+  it('refuses to take the wallet below zero, even with concurrent debits', async () => {
+    const { customer } = await setup();
+    await createAdjustment(getDb(), {
+      customerId: customer.id,
+      amount: toman(100_000),
+      reason: 'credit',
+      actor: ADMIN_A,
+    });
+    const debit = () =>
+      createAdjustment(getDb(), {
+        customerId: customer.id,
+        amount: toman(-80_000),
+        reason: 'withdraw',
+        actor: ADMIN_A,
+      });
+    const results = await Promise.allSettled([debit(), debit()]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(results.find((r) => r.status === 'rejected')).toMatchObject({
+      reason: expect.any(AdjustmentError) as unknown,
+    });
+    expect(await getBalance(getDb(), customer.id)).toBe(20_000);
+  });
+});
+
+describe('listTopups', () => {
+  it('returns pending oldest-first and decided newest-first', async () => {
+    const { newTopup } = await setup();
+    const a = await newTopup('a');
+    const b = await newTopup('b');
+    const c = await newTopup('c');
+    expect((await listTopups(getDb(), 'pending', 10)).map((t) => t.id)).toEqual([a.id, b.id, c.id]);
+    await approveTopup(getDb(), { topupId: a.id, actor: ADMIN_A });
+    await approveTopup(getDb(), { topupId: c.id, actor: ADMIN_A });
+    expect((await listTopups(getDb(), 'approved', 10)).map((t) => t.id)).toEqual([c.id, a.id]);
   });
 });

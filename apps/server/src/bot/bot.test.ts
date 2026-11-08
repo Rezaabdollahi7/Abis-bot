@@ -1,4 +1,6 @@
+import { toman } from '@abis/shared';
 import { describe, expect, it } from 'vitest';
+import { createAdjustment } from '../modules/wallet/index.js';
 import { type ApiCall, createTestBot } from '../test/bot.js';
 import { useTestDb } from '../test/db.js';
 import { findCustomerByTelegramId } from '../modules/customers/index.js';
@@ -45,6 +47,24 @@ describe('main menu', () => {
     const [edit] = t.callsOf('editMessageText');
     expect(edit?.payload.text).toContain('حساب من');
     expect(edit?.payload.text).toContain('ثبت نشده');
+    expect(edit?.payload.text).not.toContain('تراکنش‌های اخیر');
+  });
+
+  it('lists recent transactions on the account screen', async () => {
+    const t = createTestBot(getDb());
+    await t.sendText('/start');
+    const customer = await findCustomerByTelegramId(getDb(), 1000);
+    if (!customer) throw new Error('customer missing');
+    await createAdjustment(getDb(), {
+      customerId: customer.id,
+      amount: toman(250_000),
+      reason: 'gift',
+      actor: 1,
+    });
+    await t.pressButton(cb.account);
+    const text = String(t.callsOf('editMessageText').at(-1)?.payload.text);
+    expect(text).toContain('تراکنش‌های اخیر');
+    expect(text).toContain('➕ ۲۵۰٬۰۰۰ تومان · اصلاحیه');
   });
 
   it('answers not-yet-built sections with a coming-soon alert', async () => {

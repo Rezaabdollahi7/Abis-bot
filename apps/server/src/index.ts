@@ -14,7 +14,7 @@ const bot = createBot({ db, config });
 
 const app = new Hono();
 app.get('/health', (c) => c.json({ ok: true }));
-app.route('/api', createApi({ db, config }));
+app.route('/api', createApi({ db, telegram: bot.api, config }));
 
 serve({ fetch: app.fetch, port: config.PORT }, ({ port }) => {
   console.log(`HTTP server listening on :${port}`);

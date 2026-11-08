@@ -45,3 +45,11 @@ export const fa = (n: number) => faNumber.format(n);
 export function formatDuration(days: number): string {
   return days % 30 === 0 ? `${fa(days / 30)} ماهه` : `${fa(days)} روزه`;
 }
+
+const dateTime = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));

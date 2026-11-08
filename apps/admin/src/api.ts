@@ -22,3 +22,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
   return (await res.json()) as T;
 }
+
+/** Like apiFetch but returns the raw body (e.g. a receipt image). */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const res = await fetch(`/api${path}`, {
+    headers: { Authorization: `${AUTH_SCHEME} ${initData()}` },
+  });
+  if (!res.ok) throw new ApiRequestError(res.status, undefined);
+  return res.blob();
+}
