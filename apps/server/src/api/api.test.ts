@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { signInitData } from '../lib/init-data.js';
 import { addAdmin } from '../modules/admins/index.js';
+import { fakeTelegram } from '../test/api.js';
 import { useTestDb } from '../test/db.js';
 import { createApi } from './index.js';
 
@@ -9,7 +10,11 @@ const TOKEN = '123:secret';
 const OWNER = 1;
 
 function api() {
-  return createApi({ db: getDb(), config: { BOT_TOKEN: TOKEN, OWNER_TELEGRAM_IDS: [OWNER] } });
+  return createApi({
+    db: getDb(),
+    telegram: fakeTelegram().api,
+    config: { BOT_TOKEN: TOKEN, OWNER_TELEGRAM_IDS: [OWNER] },
+  });
 }
 
 function authFor(userId: number, token = TOKEN) {

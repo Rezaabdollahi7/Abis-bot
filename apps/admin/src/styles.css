@@ -199,3 +199,59 @@ th {
   font-family: ui-monospace, monospace;
   letter-spacing: 0.5px;
 }
+
+button.danger {
+  background: #d9534f;
+  color: #fff;
+}
+.warning {
+  color: #b7791f;
+  font-weight: bold;
+}
+.receipt {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.search,
+select,
+.row input {
+  font: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent);
+  background: var(--bg);
+  color: var(--text);
+}
+.search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: start;
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.positive {
+  color: #2f9e44;
+}
+.negative {
+  color: #d9534f;
+}
+.tabs.small button {
+  padding: 4px 10px;
+  font-size: 0.9em;
+}
+pre {
+  font-size: 0.75em;
+  white-space: pre-wrap;
+}
+details summary {
+  cursor: pointer;
+}
