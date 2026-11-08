@@ -1,5 +1,5 @@
 import { type RequiredFieldName, type Toman, toman } from '@abis/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../../db/client.js';
 import type { Cipher } from '../../lib/cipher.js';
@@ -12,6 +12,7 @@ import {
   isOnSale,
   usesStock,
 } from '../catalog/index.js';
+import { recordAudit } from '../audit/index.js';
 import { lockCustomer } from '../customers/index.js';
 import { claimStock, countAvailable } from '../stock/index.js';
 import { getBalance, recordLedgerEntry } from '../wallet/index.js';
@@ -23,6 +24,8 @@ export type CustomerInput = Partial<Record<RequiredFieldName, string>>;
 /** Most units of a stock-based variant in one order. */
 export const MAX_QUANTITY = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Customer-provided input (passwords) is erased this long after delivery. */
+export const INPUT_RETENTION_DAYS = 7;
 
 export type PurchaseFailure =
   | { reason: 'not_on_sale' }
@@ -211,4 +214,119 @@ export async function getOrder(db: Db, id: number): Promise<Order | undefined> {
 export function readCustomerInput(cipher: Cipher, order: Order): CustomerInput {
   if (!order.customerInputEncrypted) return {};
   return JSON.parse(cipher.decrypt(order.customerInputEncrypted)) as CustomerInput;
+}
+
+export type OrderStatus = Order['status'];
+export type Subscription = typeof subscriptions.$inferSelect;
+
+/** Queued: oldest first (work queue). Decided: newest first (history). */
+export async function listOrders(db: Db, status: OrderStatus, limit: number): Promise<Order[]> {
+  return db
+    .select()
+    .from(orders)
+    .where(eq(orders.status, status))
+    .orderBy(status === 'queued' ? asc(orders.id) : desc(orders.id))
+    .limit(limit);
+}
+
+export type OrderDecision =
+  | { ok: true; order: Order; balance?: Toman }
+  /** Already delivered/rejected by someone else, or unknown id. */
+  | { ok: false; order: Order | undefined };
+
+/**
+ * Marks a queued order delivered exactly once, stores what the admin sent
+ * (encrypted), starts the subscription and schedules the input purge.
+ */
+export async function deliverOrder(
+  db: Db,
+  cipher: Cipher,
+  input: { orderId: number; actor: number; note: string },
+): Promise<OrderDecision> {
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const [order] = await tx
+      .update(orders)
+      .set({
+        status: 'delivered',
+        deliveredAt: now,
+        handledByTelegramId: input.actor,
+        deliveryNoteEncrypted: cipher.encrypt(input.note),
+        inputPurgeAt: new Date(now.getTime() + INPUT_RETENTION_DAYS * DAY_MS),
+      })
+      .where(and(eq(orders.id, input.orderId), eq(orders.status, 'queued')))
+      .returning();
+    if (!order) return { ok: false, order: await reloadOrder(tx, input.orderId) };
+
+    const found = await getVariantWithProduct(tx, order.variantId);
+    const days = found?.variant.durationDays ?? 0;
+    await tx.insert(subscriptions).values({
+      orderId: order.id,
+      startsAt: now,
+      expiresAt: new Date(now.getTime() + days * DAY_MS),
+    });
+    await recordAudit(tx, {
+      adminTelegramId: input.actor,
+      action: 'order.deliver',
+      entityType: 'order',
+      entityId: order.id,
+    });
+    return { ok: true, order };
+  });
+}
+
+/** Rejects a queued order exactly once and refunds the full amount to the wallet. */
+export async function rejectOrder(
+  db: Db,
+  input: { orderId: number; actor: number; reason: string },
+): Promise<OrderDecision> {
+  return db.transaction(async (tx) => {
+    const [order] = await tx
+      .update(orders)
+      .set({ status: 'rejected', rejectReason: input.reason, handledByTelegramId: input.actor })
+      .where(and(eq(orders.id, input.orderId), eq(orders.status, 'queued')))
+      .returning();
+    if (!order) return { ok: false, order: await reloadOrder(tx, input.orderId) };
+
+    await recordLedgerEntry(tx, {
+      customerId: order.customerId,
+      amount: toman(order.totalToman),
+      kind: 'refund',
+      refType: 'order',
+      refId: order.id,
+      reason: input.reason,
+      createdByAdminTelegramId: input.actor,
+    });
+    await recordAudit(tx, {
+      adminTelegramId: input.actor,
+      action: 'order.reject',
+      entityType: 'order',
+      entityId: order.id,
+      data: { reason: input.reason, refund: order.totalToman },
+    });
+    return { ok: true, order, balance: await getBalance(tx, order.customerId) };
+  });
+}
+
+async function reloadOrder(exec: Parameters<typeof getVariantWithProduct>[0], id: number) {
+  const [row] = await exec.select().from(orders).where(eq(orders.id, id));
+  return row;
+}
+
+export function readDeliveryNote(cipher: Cipher, order: Order): string | null {
+  return order.deliveryNoteEncrypted ? cipher.decrypt(order.deliveryNoteEncrypted) : null;
+}
+
+/** A customer's subscriptions that have not expired yet, soonest expiry first. */
+export async function listActiveSubscriptions(
+  db: Db,
+  customerId: number,
+  now = new Date(),
+): Promise<{ order: Order; subscription: Subscription }[]> {
+  return db
+    .select({ order: orders, subscription: subscriptions })
+    .from(subscriptions)
+    .innerJoin(orders, eq(subscriptions.orderId, orders.id))
+    .where(and(eq(orders.customerId, customerId), gt(subscriptions.expiresAt, now)))
+    .orderBy(asc(subscriptions.expiresAt));
 }

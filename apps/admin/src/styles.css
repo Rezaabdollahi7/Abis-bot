@@ -255,3 +255,10 @@ pre {
 details summary {
   cursor: pointer;
 }
+
+.copyable {
+  cursor: copy;
+  background: color-mix(in srgb, var(--hint) 15%, transparent);
+  padding: 1px 4px;
+  border-radius: 4px;
+}

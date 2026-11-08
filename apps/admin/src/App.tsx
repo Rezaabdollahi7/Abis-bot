@@ -4,6 +4,7 @@ import { ApiRequestError, apiFetch } from './api';
 import { AuditPage } from './audit/AuditPage';
 import { CatalogPage } from './catalog/CatalogPage';
 import { CustomersPage } from './customers/CustomersPage';
+import { OrdersPage } from './orders/OrdersPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { TopupsPage } from './topups/TopupsPage';
 import { initData, telegramWebApp } from './telegram';
@@ -17,6 +18,7 @@ type State =
 
 const tabs = [
   { id: 'topups', label: 'واریزها', Page: TopupsPage },
+  { id: 'orders', label: 'سفارش‌ها', Page: OrdersPage },
   { id: 'customers', label: 'کاربران', Page: CustomersPage },
   { id: 'catalog', label: 'کاتالوگ', Page: CatalogPage },
   { id: 'settings', label: 'تنظیمات', Page: SettingsPage },

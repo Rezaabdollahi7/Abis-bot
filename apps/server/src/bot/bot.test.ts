@@ -1,6 +1,9 @@
 import { toman } from '@abis/shared';
 import { describe, expect, it } from 'vitest';
+import { purchase } from '../modules/orders/index.js';
 import { createAdjustment } from '../modules/wallet/index.js';
+import { testCipher } from '../test/cipher.js';
+import { seedTestCatalog } from '../test/fixtures.js';
 import { type ApiCall, createTestBot } from '../test/bot.js';
 import { useTestDb } from '../test/db.js';
 import { findCustomerByTelegramId } from '../modules/customers/index.js';
@@ -48,6 +51,30 @@ describe('main menu', () => {
     expect(edit?.payload.text).toContain('حساب من');
     expect(edit?.payload.text).toContain('ثبت نشده');
     expect(edit?.payload.text).not.toContain('تراکنش‌های اخیر');
+  });
+
+  it('lists active subscriptions with their expiry on the account screen', async () => {
+    const c = await seedTestCatalog(getDb());
+    const t = createTestBot(getDb());
+    await t.sendText('/start');
+    const customer = await findCustomerByTelegramId(getDb(), 1000);
+    if (!customer) throw new Error('customer missing');
+    await createAdjustment(getDb(), {
+      customerId: customer.id,
+      amount: toman(2_000_000),
+      reason: 'funds',
+      actor: 1,
+    });
+    await purchase(getDb(), testCipher, {
+      customerId: customer.id,
+      variantId: c.gemini12m.id,
+      quantity: 1,
+      requestKey: 'k',
+    });
+    await t.pressButton(cb.account);
+    const text = String(t.callsOf('editMessageText').at(-1)?.payload.text);
+    expect(text).toContain('اشتراک‌های فعال');
+    expect(text).toContain('Gemini Pro · ۱۲ ماهه — تا');
   });
 
   it('lists recent transactions on the account screen', async () => {

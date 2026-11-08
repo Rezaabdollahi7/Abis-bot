@@ -56,6 +56,7 @@ export const texts = {
     phone: string | null;
     memberSince: Date;
     recent: { amountToman: number; kind: LedgerKind; createdAt: Date }[];
+    subscriptions: { line: string; expiresAt: Date }[];
   }) =>
     [
       '👤 <b>حساب من</b>',
@@ -66,6 +67,15 @@ export const texts = {
       `📅 عضویت از: ${jalaliDate.format(args.memberSince)}`,
       '',
       `💰 موجودی: <b>${formatToman(args.balance)}</b>`,
+      ...(args.subscriptions.length > 0
+        ? [
+            '',
+            '📦 <b>اشتراک‌های فعال</b>',
+            ...args.subscriptions.map(
+              (s) => `• ${escapeHtml(s.line)} — تا ${shortDate.format(s.expiresAt)}`,
+            ),
+          ]
+        : []),
       ...(args.recent.length > 0
         ? [
             '',
@@ -184,6 +194,21 @@ export const texts = {
       `⏱ در صف تحویل است${etaMinutes ? ` و حدود ${faNumber.format(etaMinutes)} دقیقه‌ی دیگر انجام می‌شود` : ''}. نتیجه همین‌جا اطلاع داده می‌شود.`,
       '',
       `موجودی فعلی: ${formatToman(balance)}`,
+    ].join('\n'),
+  orderDeliveredManually: (orderId: number, line: string, note: string) =>
+    [
+      `✅ <b>سفارش #${faNumber.format(orderId)} تحویل شد</b>`,
+      escapeHtml(line),
+      ...(note ? ['', `<pre>${escapeHtml(note)}</pre>`] : []),
+    ].join('\n'),
+  orderRejected: (orderId: number, line: string, reason: string, refund: Toman, balance?: Toman) =>
+    [
+      `❌ <b>سفارش #${faNumber.format(orderId)} انجام نشد</b>`,
+      escapeHtml(line),
+      `دلیل: ${escapeHtml(reason)}`,
+      '',
+      `💰 مبلغ ${formatToman(refund)} به کیف پول شما برگشت داده شد.`,
+      ...(balance === undefined ? [] : [`موجودی فعلی: ${formatToman(balance)}`]),
     ].join('\n'),
   notEnoughStock: (available: number) =>
     `فقط ${faNumber.format(available)} عدد موجود است. لطفاً تعداد کمتری انتخاب کنید.`,

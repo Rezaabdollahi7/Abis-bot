@@ -84,3 +84,25 @@ export interface AuditEntryDto {
   data: Record<string, unknown>;
   createdAt: string;
 }
+
+export type OrderStatus = 'queued' | 'delivered' | 'rejected';
+
+export interface OrderDto {
+  id: number;
+  status: OrderStatus;
+  productLine: string;
+  deliveryMethod: 'link' | 'ready_account' | 'email_activation';
+  quantity: number;
+  totalToman: number;
+  customer: { id: number; telegramId: number; firstName: string; username: string | null };
+  /** Decrypted for admins while retained (email, password, note); empty after the purge. */
+  input: Partial<Record<'email' | 'password' | 'note', string>>;
+  deliveryNote: string | null;
+  rejectReason: string | null;
+  handledBy: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
+export const deliverOrderInput = z.object({ note: z.string().trim().min(1).max(3500) });
+export const rejectOrderInput = z.object({ reason: z.string().trim().min(3).max(300) });
