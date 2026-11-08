@@ -190,7 +190,7 @@ export function purchaseComposer(
         texts.orderQueued(result.order.id, name, result.product.etaMinutes, result.balance),
         { parse_mode: 'HTML', reply_markup: home },
       );
-      await alertAdminsOfQueuedOrder(ctx.api, db, ownerIds, cipher, result);
+      await alertAdminsOfQueuedOrder(ctx.api, db, ownerIds, cipher, result.order);
     }
   });
 

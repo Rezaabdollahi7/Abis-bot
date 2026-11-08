@@ -13,7 +13,8 @@ export interface SessionData {
     | 'order_input'
     | 'ticket_new'
     | 'ticket_reply'
-    | 'admin_deliver';
+    | 'admin_deliver'
+    | 'admin_input';
   /** Chosen top-up amount and the card shown for it, while waiting for the receipt. */
   topupAmount?: number;
   topupCardId?: number;
@@ -28,6 +29,16 @@ export interface SessionData {
   ticket?: { topic?: 'order' | 'payment' | 'general'; orderId?: number; ticketId?: number };
   /** Admin: the queued order whose delivery message is being written. */
   adminOrderId?: number;
+  /** Admin menu: what the next text message is for. */
+  adminInput?: {
+    kind: 'search' | 'adjust' | 'dm' | 'broadcast' | 'price' | 'stock' | 'card' | 'setting';
+    customerId?: number;
+    sign?: 1 | -1;
+    variantId?: number;
+    settingKey?: 'topupMinToman' | 'topupMaxToman' | 'lowStockThreshold';
+    /** Broadcast text waiting for confirmation. */
+    text?: string;
+  };
 }
 
 /** Postgres-backed session storage so a restart never loses a half-finished top-up. */
