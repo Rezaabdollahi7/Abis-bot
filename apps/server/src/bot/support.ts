@@ -41,6 +41,8 @@ export async function alertAdminsOfTicket(
   ticket: Ticket,
   message: MessageInput,
   isNew: boolean,
+  /** Only these chats; default: every admin. */
+  recipients?: number[],
 ): Promise<void> {
   const customer = await getCustomer(db, ticket.customerId);
   const sent = await broadcastToAdmins(
@@ -58,6 +60,7 @@ export async function alertAdminsOfTicket(
       hasFile: Boolean(message.fileId),
     }),
     new InlineKeyboard().text(texts.buttons.closeTicketAdmin, `tk:ac:${ticket.id}`),
+    recipients,
   );
   if (message.fileId) {
     for (const { chatId } of [...sent]) {

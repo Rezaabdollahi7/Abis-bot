@@ -75,10 +75,12 @@ export async function alertAdminsOfTopup(
   db: Db,
   ownerIds: readonly number[],
   topup: Topup,
+  /** Only these chats (e.g. one admin opening the queue); default: every admin. */
+  recipients?: number[],
 ): Promise<void> {
   const caption = await renderAlert(db, topup);
   const sent = [];
-  for (const chatId of await listAdminTelegramIds(db, ownerIds)) {
+  for (const chatId of recipients ?? (await listAdminTelegramIds(db, ownerIds))) {
     try {
       const message = await api.sendPhoto(chatId, topup.receiptFileId, {
         caption,

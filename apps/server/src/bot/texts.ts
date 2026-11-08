@@ -473,3 +473,140 @@ export const orderRejectReasons = [
 export function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+// ── Admin menu (/admin) ──────────────────────────────────────────────────────
+
+export const adminTexts = {
+  home: (args: {
+    pendingTopups: number;
+    queuedOrders: number;
+    openTickets: number;
+    salesToday: Toman;
+    salesCountToday: number;
+    topupsToday: Toman;
+    newCustomersToday: number;
+  }) =>
+    [
+      '🛠 <b>مدیریت فروشگاه</b>',
+      '',
+      `امروز: 🛒 ${formatToman(args.salesToday)} (${faNumber.format(args.salesCountToday)} سفارش) · 💳 ${formatToman(args.topupsToday)} · 👤 ${faNumber.format(args.newCustomersToday)} کاربر جدید`,
+      '',
+      args.pendingTopups + args.queuedOrders + args.openTickets === 0
+        ? '✅ کار در انتظاری نیست.'
+        : '⏳ کارهای در انتظار در دکمه‌های زیر است.',
+    ].join('\n'),
+  buttons: {
+    topups: (n: number) => `💳 واریزها (${faNumber.format(n)})`,
+    orders: (n: number) => `🛒 سفارش‌های دستی (${faNumber.format(n)})`,
+    tickets: (n: number) => `🎧 تیکت‌ها (${faNumber.format(n)})`,
+    customers: '👤 جست‌وجوی کاربر',
+    broadcast: '📣 پیام همگانی',
+    catalog: '📦 انبار و قیمت',
+    cards: '🏦 کارت‌ها',
+    settings: '⚙️ تنظیمات',
+    back: '🔙 منوی مدیریت',
+    credit: '➕ افزایش موجودی',
+    debit: '➖ کاهش موجودی',
+    message: '📬 پیام',
+    ban: '🚫 مسدود کردن',
+    unban: '✅ رفع مسدودیت',
+    send: (n: number) => `✅ ارسال برای ${faNumber.format(n)} نفر`,
+    changePrice: '💰 تغییر قیمت',
+    addStock: '📦 افزودن به انبار',
+    toggleVariant: (active: boolean) =>
+      active ? '🔌 غیرفعال کردن این مدت' : '🔌 فعال کردن این مدت',
+    toggleProduct: (active: boolean) => (active ? '⛔️ غیرفعال کردن محصول' : '✅ فعال کردن محصول'),
+    toggleFeatured: (featured: boolean) => (featured ? '⭐ حذف از ویژه' : '⭐ ویژه کردن'),
+    addCard: '➕ کارت جدید',
+    toggle: (label: string, on: boolean) => `${on ? '✅' : '⬜️'} ${label}`,
+    edit: (label: string, value: string) => `✏️ ${label}: ${value}`,
+  },
+  emptyQueue: 'موردی در انتظار نیست ✅',
+  queueSent: (n: number) => `${faNumber.format(n)} مورد در پیام‌های بعدی ارسال شد.`,
+  askSearch: '🔎 نام، ‎@یوزرنیم، شماره موبایل یا شناسه‌ی عددی کاربر را بفرستید:',
+  noCustomer: 'کاربری پیدا نشد.',
+  chooseCustomer: 'کاربر را انتخاب کنید:',
+  customerCard: (args: {
+    name: string;
+    username: string | null;
+    phone: string | null;
+    telegramId: number;
+    balance: Toman;
+    banned: boolean;
+    recent: { amountToman: number; kind: LedgerKind; reason: string | null }[];
+  }) =>
+    [
+      `👤 <b>${escapeHtml(args.name)}</b>${args.username ? ` (@${escapeHtml(args.username)})` : ''}${args.banned ? ' 🚫 مسدود' : ''}`,
+      `📱 ${args.phone ?? '—'} · <code>${args.telegramId}</code>`,
+      `💰 موجودی: <b>${formatToman(args.balance)}</b>`,
+      ...(args.recent.length
+        ? [
+            '',
+            ...args.recent.map(
+              (e) =>
+                `${e.amountToman > 0 ? '➕' : '➖'} ${formatToman(toman(Math.abs(e.amountToman)))} · ${ledgerKindLabels[e.kind]}${e.reason ? ` — ${escapeHtml(e.reason)}` : ''}`,
+            ),
+          ]
+        : []),
+    ].join('\n'),
+  askAdjust: (sign: 1 | -1) =>
+    `${sign > 0 ? '➕ افزایش' : '➖ کاهش'} موجودی: مبلغ و دلیل را در یک پیام بفرستید.\nمثال: <code>200000 جبران تأخیر</code>\nبرای لغو /cancel`,
+  badAdjust: 'فرمت درست: مبلغ (عدد) و بعد دلیل. مثال: 200000 جبران تأخیر',
+  adjusted: (balance: Toman) => `✅ ثبت شد. موجودی جدید: ${formatToman(balance)}`,
+  askDm: '📬 متن پیام را بفرستید (برای لغو /cancel):',
+  dmSent: '✅ پیام ارسال شد.',
+  dmFailed: 'ارسال نشد؛ احتمالاً کاربر ربات را بلاک کرده است.',
+  askBroadcast: '📣 متن پیام همگانی را بفرستید (برای لغو /cancel):',
+  confirmBroadcast: (text: string, n: number) =>
+    `📣 <b>پیش‌نمایش</b> (برای ${faNumber.format(n)} نفر):\n\n${escapeHtml(text)}`,
+  broadcastStarted: (n: number) =>
+    `✅ ارسال برای ${faNumber.format(n)} نفر شروع شد. با سرعت مجاز تلگرام چند دقیقه طول می‌کشد.`,
+  chooseProvider: '📦 شرکت را انتخاب کنید:',
+  chooseProduct: 'محصول را انتخاب کنید:',
+  chooseVariant: (name: string, active: boolean, featured: boolean) =>
+    `<b>${escapeHtml(name)}</b>${active ? '' : ' (غیرفعال)'}${featured ? ' ⭐' : ''}\nمدت را انتخاب کنید:`,
+  variantCard: (line: string, price: Toman, stock: number | null, sold: number, active: boolean) =>
+    [
+      `<b>${escapeHtml(line)}</b>${active ? '' : ' (غیرفعال)'}`,
+      `💰 قیمت: ${formatToman(price)}`,
+      `📦 موجودی: ${stock === null ? 'بدون انبار (فعال‌سازی روی ایمیل)' : faNumber.format(stock)}`,
+      `📈 فروش: ${faNumber.format(sold)}`,
+    ].join('\n'),
+  askPrice: '💰 قیمت جدید را به تومان بفرستید (برای لغو /cancel):',
+  badNumber: 'لطفاً فقط یک عدد بفرستید.',
+  priceSaved: (price: Toman) => `✅ قیمت به ${formatToman(price)} تغییر کرد.`,
+  askStock: (isLink: boolean) =>
+    isLink
+      ? '📦 لینک‌ها را بفرستید؛ هر لینک در یک خط (برای لغو /cancel):'
+      : '📦 اکانت‌ها را بفرستید؛ هر اکانت (مثلاً ایمیل و رمز در دو خط) با یک خط خالی از بعدی جدا شود (برای لغو /cancel):',
+  stockAdded: (n: number) =>
+    `✅ ${faNumber.format(n)} آیتم به انبار اضافه شد. پیام شما برای امنیت پاک شد.`,
+  cards: (cards: { number: string; holderName: string; bankName: string; isActive: boolean }[]) =>
+    cards.length === 0
+      ? '🏦 هنوز کارتی ثبت نشده. بدون کارت فعال، شارژ کیف پول غیرفعال است.'
+      : [
+          '🏦 <b>کارت‌ها</b> — کارت فعال به مشتری‌ها نشان داده می‌شود:',
+          '',
+          ...cards.map(
+            (c) =>
+              `${c.isActive ? '✅' : '▫️'} <code>${c.number.replace(/(\d{4})(?=\d)/g, '$1-')}</code> · ${escapeHtml(c.holderName)} · ${escapeHtml(c.bankName)}`,
+          ),
+        ].join('\n'),
+  cardButton: (number: string, active: boolean) =>
+    `${active ? '✅' : 'فعال کن'} ****${number.slice(-4)}`,
+  askCard: '➕ سه خط بفرستید:\n۱) شماره کارت\n۲) نام صاحب کارت\n۳) نام بانک\n(برای لغو /cancel)',
+  badCard: 'اطلاعات کارت معتبر نیست. شماره ۱۶ رقمی، نام و بانک را هر کدام در یک خط بفرستید.',
+  cardAdded: '✅ کارت اضافه شد. برای نمایش به مشتری‌ها «فعال کن» را بزنید.',
+  settingsTitle: '⚙️ <b>تنظیمات</b>',
+  settingLabels: {
+    forcedJoin: 'عضویت اجباری کانال',
+    requirePhone: 'شماره موبایل قبل از شارژ',
+    topupMinToman: 'حداقل شارژ',
+    topupMaxToman: 'حداکثر شارژ',
+    lowStockThreshold: 'هشدار کمبود انبار',
+  },
+  askSetting: (label: string) => `✏️ مقدار جدید «${label}» را بفرستید (عدد؛ برای لغو /cancel):`,
+  settingSaved: '✅ ذخیره شد.',
+  failed: (message: string) => `❗️ ${message}`,
+  cancelled: 'لغو شد.',
+};

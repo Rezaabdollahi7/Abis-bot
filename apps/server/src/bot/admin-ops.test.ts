@@ -56,7 +56,7 @@ describe('delivering a queued order from the chat', () => {
   it('asks for the delivery message and sends it to the customer', async () => {
     const { result } = await queuedOrder();
     const t = createTestBot(getDb(), { ownerIds: [OWNER] });
-    await alertAdminsOfQueuedOrder(t.api, getDb(), [OWNER], testCipher, result);
+    await alertAdminsOfQueuedOrder(t.api, getDb(), [OWNER], testCipher, result.order);
     expect(JSON.stringify(t.callsOf('sendMessage').at(-1)?.payload.reply_markup)).toContain(
       `od:d:${result.order.id}`,
     );

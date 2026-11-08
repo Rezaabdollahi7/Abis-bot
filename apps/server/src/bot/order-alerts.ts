@@ -26,9 +26,11 @@ export async function broadcastToAdmins(
   ownerIds: readonly number[],
   text: string,
   keyboard?: InlineKeyboard,
+  /** Only these chats; default: every admin. */
+  recipients?: number[],
 ): Promise<{ chatId: number; messageId: number }[]> {
   const sent = [];
-  for (const chatId of await listAdminTelegramIds(db, ownerIds)) {
+  for (const chatId of recipients ?? (await listAdminTelegramIds(db, ownerIds))) {
     try {
       const message = await api.sendMessage(chatId, text, {
         parse_mode: 'HTML',
@@ -104,19 +106,18 @@ export async function alertAdminsOfQueuedOrder(
   db: Db,
   ownerIds: readonly number[],
   cipher: Cipher,
-  result: Purchased,
+  order: Order,
+  recipients?: number[],
 ): Promise<void> {
   const sent = await broadcastToAdmins(
     api,
     db,
     ownerIds,
-    await renderOrderAlert(db, cipher, result.order),
-    orderAlertKeyboard(
-      result.order.id,
-      readCustomerInput(cipher, result.order).password !== undefined,
-    ),
+    await renderOrderAlert(db, cipher, order),
+    orderAlertKeyboard(order.id, readCustomerInput(cipher, order).password !== undefined),
+    recipients,
   );
-  await recordNotifications(db, { type: ENTITY, id: result.order.id }, sent);
+  await recordNotifications(db, { type: ENTITY, id: order.id }, sent);
 }
 
 /** After manual delivery or rejection: tell the customer and update every admin's alert. */
