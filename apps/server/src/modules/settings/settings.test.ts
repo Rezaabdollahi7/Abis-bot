@@ -21,6 +21,7 @@ describe('settings', () => {
       requirePhone: true,
       topupMinToman: 50_000,
       topupMaxToman: 50_000_000,
+      lowStockThreshold: 3,
     });
   });
 

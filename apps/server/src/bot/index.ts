@@ -1,5 +1,6 @@
 import { Bot, type BotConfig, GrammyError, session } from 'grammy';
 import type { Db } from '../db/client.js';
+import type { Cipher } from '../lib/cipher.js';
 import type { Config } from '../lib/config.js';
 import { registerCustomer } from '../modules/customers/index.js';
 import { getSettings } from '../modules/settings/index.js';
@@ -7,6 +8,7 @@ import { getBalance, listLedger } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
 import { sessionStorage } from './session.js';
+import { purchaseComposer } from './purchase.js';
 import { shopComposer } from './shop.js';
 import { texts } from './texts.js';
 import { topupAlertComposer } from './topup-alerts.js';
@@ -14,6 +16,7 @@ import { topupComposer } from './topup.js';
 
 export interface BotDeps {
   db: Db;
+  cipher: Cipher;
   config: Pick<Config, 'BOT_TOKEN' | 'CHANNEL_ID' | 'OWNER_TELEGRAM_IDS'>;
   /** Tests inject botInfo so the bot never calls getMe. */
   botConfig?: BotConfig<BotContext>;
@@ -21,7 +24,7 @@ export interface BotDeps {
 
 const MEMBER_STATUSES = new Set(['creator', 'administrator', 'member']);
 
-export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
+export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotContext> {
   const bot = new Bot<BotContext>(config.BOT_TOKEN, botConfig);
   const channelLink = channelUrl(config.CHANNEL_ID);
   const pm = bot.chatType('private');
@@ -99,6 +102,7 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
   });
 
   pm.use(shopComposer(db));
+  pm.use(purchaseComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(topupComposer(db, config.OWNER_TELEGRAM_IDS));
 
   // Placeholders until their roadmap items land.

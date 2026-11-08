@@ -1,5 +1,5 @@
 import type { StockItemDto } from '@abis/shared';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
 import type { Cipher } from '../../lib/cipher.js';
 import { recordAudit } from '../audit/index.js';
@@ -113,4 +113,40 @@ export function mask(payload: string): string {
   const line = payload.split('\n')[0] ?? '';
   if (line.length <= 12) return `${line.slice(0, 3)}…`;
   return `${line.slice(0, 8)}…${line.slice(-4)}`;
+}
+
+/**
+ * Claims up to `quantity` available items of a variant for an order and returns
+ * their decrypted payloads. SKIP LOCKED lets concurrent buyers take different rows
+ * instead of waiting on (or double-selling) the same ones. Must run inside the
+ * purchase transaction.
+ */
+export async function claimStock(
+  tx: Executor,
+  cipher: Cipher,
+  input: { variantId: number; quantity: number; orderId: number },
+): Promise<string[]> {
+  const rows = await tx
+    .update(stockItems)
+    .set({ status: 'sold', orderId: input.orderId })
+    .where(
+      inArray(
+        stockItems.id,
+        sql`(SELECT ${stockItems.id} FROM ${stockItems}
+             WHERE ${stockItems.variantId} = ${input.variantId} AND ${stockItems.status} = 'available'
+             ORDER BY ${stockItems.id} LIMIT ${input.quantity} FOR UPDATE SKIP LOCKED)`,
+      ),
+    )
+    .returning({ payload: stockItems.payloadEncrypted });
+  return rows.map((r) => cipher.decrypt(r.payload));
+}
+
+/** Decrypted payloads delivered for an order (to show the customer again). */
+export async function getOrderItems(db: Db, cipher: Cipher, orderId: number): Promise<string[]> {
+  const rows = await db
+    .select({ payload: stockItems.payloadEncrypted })
+    .from(stockItems)
+    .where(eq(stockItems.orderId, orderId))
+    .orderBy(stockItems.id);
+  return rows.map((r) => cipher.decrypt(r.payload));
 }

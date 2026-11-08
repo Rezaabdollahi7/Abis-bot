@@ -95,6 +95,15 @@ export function SettingsPage() {
       </article>
 
       <article className="card">
+        <h3>📦 انبار</h3>
+        <LimitInput
+          label="هشدار کمبود موجودی وقتی به این تعداد رسید"
+          value={settings.lowStockThreshold}
+          onSave={(lowStockThreshold) => patch({ lowStockThreshold })}
+        />
+      </article>
+
+      <article className="card">
         <h3>⚙️ رفتار ربات</h3>
         <Toggle
           label="عضویت اجباری در کانال"
@@ -129,7 +138,7 @@ function LimitInput(props: { label: string; value: number; onSave: (value: numbe
   return (
     <Field label={props.label}>
       <div className="row">
-        <input type="number" min={1} value={value} onChange={(e) => setValue(e.target.value)} />
+        <input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} />
         {dirty && (
           <button type="button" onClick={() => props.onSave(Number(value))}>
             ذخیره

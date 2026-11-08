@@ -7,7 +7,7 @@ import {
   type VariantInput,
   toman,
 } from '@abis/shared';
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, eq, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
 import { countAvailable } from '../stock/index.js';
@@ -73,22 +73,36 @@ export async function getVariantView(db: Db, variantId: number): Promise<Variant
   return views[0];
 }
 
-/** A variant with its product regardless of active flags (admin and order processing). */
+/** A variant with its product and provider regardless of active flags (admin and orders). */
 export async function getVariantWithProduct(
   db: Executor,
   variantId: number,
-): Promise<{ variant: Variant; product: Product } | undefined> {
+): Promise<{ variant: Variant; product: Product; provider: Provider } | undefined> {
   const [row] = await db
-    .select({ variant: variants, product: products })
+    .select({ variant: variants, product: products, provider: providers })
     .from(variants)
     .innerJoin(products, eq(variants.productId, products.id))
+    .innerJoin(providers, eq(products.providerId, providers.id))
     .where(eq(variants.id, variantId));
   return (
     row && {
       variant: { ...row.variant, priceToman: toman(row.variant.priceToman) },
       product: row.product,
+      provider: row.provider,
     }
   );
+}
+
+export function isOnSale(found: { variant: Variant; product: Product; provider: Provider }) {
+  return found.variant.isActive && found.product.isActive && found.provider.isActive;
+}
+
+/** Bumps the sold counter shown on product cards. */
+export async function addSold(exec: Executor, variantId: number, quantity: number) {
+  await exec
+    .update(variants)
+    .set({ soldCount: sql`${variants.soldCount} + ${quantity}` })
+    .where(eq(variants.id, variantId));
 }
 
 /** Variants of featured products for the shop front page, paginated. */
