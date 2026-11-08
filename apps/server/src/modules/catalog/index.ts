@@ -1,10 +1,18 @@
-import { type Toman, toman } from '@abis/shared';
+import {
+  type CatalogProviderDto,
+  type Patch,
+  type ProductInput,
+  type ProviderInput,
+  type Toman,
+  type VariantInput,
+  toman,
+} from '@abis/shared';
 import { and, asc, count, eq } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
+import type { Db, Executor } from '../../db/client.js';
+import { recordAudit } from '../audit/index.js';
 import { countAvailable } from '../stock/index.js';
 import { products, providers, variants } from './schema.js';
 
-export type { RequiredField } from './schema.js';
 export type Provider = typeof providers.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type DeliveryMethod = Product['deliveryMethod'];
@@ -126,7 +134,7 @@ async function withStock(
 // ── Admin (write side) ────────────────────────────────────────────────────────
 
 export async function createProvider(
-  db: Db,
+  db: Executor,
   input: typeof providers.$inferInsert,
 ): Promise<Provider> {
   const [row] = await db.insert(providers).values(input).returning();
@@ -134,14 +142,17 @@ export async function createProvider(
   return row;
 }
 
-export async function createProduct(db: Db, input: typeof products.$inferInsert): Promise<Product> {
+export async function createProduct(
+  db: Executor,
+  input: typeof products.$inferInsert,
+): Promise<Product> {
   const [row] = await db.insert(products).values(input).returning();
   if (!row) throw new Error('createProduct: insert returned no row');
   return row;
 }
 
 export async function createVariant(
-  db: Db,
+  db: Executor,
   input: Omit<typeof variants.$inferInsert, 'priceToman'> & { priceToman: Toman },
 ): Promise<Variant> {
   const [row] = await db.insert(variants).values(input).returning();
@@ -152,4 +163,91 @@ export async function createVariant(
 export async function hasAnyProvider(db: Db): Promise<boolean> {
   const [row] = await db.select({ n: count() }).from(providers);
   return (row?.n ?? 0) > 0;
+}
+
+/** The whole catalog for the admin panel, including inactive rows. */
+export async function getFullCatalog(db: Db): Promise<CatalogProviderDto[]> {
+  const [providerRows, productRows, variantRows] = await Promise.all([
+    db.select().from(providers).orderBy(asc(providers.sortOrder), asc(providers.id)),
+    db.select().from(products).orderBy(asc(products.sortOrder), asc(products.id)),
+    db.select().from(variants).orderBy(asc(variants.durationDays), asc(variants.id)),
+  ]);
+  const productById = new Map(productRows.map((p) => [p.id, p]));
+  const stockIds = variantRows
+    .filter((v) => {
+      const product = productById.get(v.productId);
+      return product !== undefined && usesStock(product.deliveryMethod);
+    })
+    .map((v) => v.id);
+  const available = await countAvailable(db, stockIds);
+
+  return providerRows.map(({ createdAt: _p, ...provider }) => ({
+    ...provider,
+    products: productRows
+      .filter((product) => product.providerId === provider.id)
+      .map(({ createdAt: _c, ...product }) => ({
+        ...product,
+        variants: variantRows
+          .filter((variant) => variant.productId === product.id)
+          .map(({ createdAt: _v, ...variant }) => ({
+            ...variant,
+            stock: usesStock(product.deliveryMethod) ? (available.get(variant.id) ?? 0) : null,
+          })),
+      })),
+  }));
+}
+
+/** Admin writes: each runs in a transaction together with its audit-log row. */
+export const catalogAdmin = {
+  createProvider: (db: Db, actor: number, input: ProviderInput) =>
+    db.transaction(async (tx) => {
+      const row = await createProvider(tx, input);
+      await recordAudit(tx, audit(actor, 'provider.create', 'provider', row.id, input));
+      return row;
+    }),
+
+  updateProvider: (db: Db, actor: number, id: number, patch: Patch<ProviderInput>) =>
+    db.transaction(async (tx) => {
+      const [row] = await tx.update(providers).set(patch).where(eq(providers.id, id)).returning();
+      if (row) await recordAudit(tx, audit(actor, 'provider.update', 'provider', id, patch));
+      return row;
+    }),
+
+  createProduct: (db: Db, actor: number, input: ProductInput) =>
+    db.transaction(async (tx) => {
+      const row = await createProduct(tx, input);
+      await recordAudit(tx, audit(actor, 'product.create', 'product', row.id, input));
+      return row;
+    }),
+
+  updateProduct: (db: Db, actor: number, id: number, patch: Patch<ProductInput>) =>
+    db.transaction(async (tx) => {
+      const [row] = await tx.update(products).set(patch).where(eq(products.id, id)).returning();
+      if (row) await recordAudit(tx, audit(actor, 'product.update', 'product', id, patch));
+      return row;
+    }),
+
+  createVariant: (db: Db, actor: number, input: VariantInput) =>
+    db.transaction(async (tx) => {
+      const row = await createVariant(tx, { ...input, priceToman: toman(input.priceToman) });
+      await recordAudit(tx, audit(actor, 'variant.create', 'variant', row.id, input));
+      return row;
+    }),
+
+  updateVariant: (db: Db, actor: number, id: number, patch: Patch<VariantInput>) =>
+    db.transaction(async (tx) => {
+      const [row] = await tx.update(variants).set(patch).where(eq(variants.id, id)).returning();
+      if (row) await recordAudit(tx, audit(actor, 'variant.update', 'variant', id, patch));
+      return row;
+    }),
+};
+
+function audit(
+  adminTelegramId: number,
+  action: string,
+  entityType: string,
+  entityId: number,
+  data: object,
+) {
+  return { adminTelegramId, action, entityType, entityId, data: { ...data } };
 }

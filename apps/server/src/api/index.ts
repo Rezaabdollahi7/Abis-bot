@@ -4,6 +4,7 @@ import type { Db } from '../db/client.js';
 import { InitDataError, validateInitData } from '../lib/init-data.js';
 import type { Config } from '../lib/config.js';
 import { type AdminIdentity, resolveAdmin } from '../modules/admins/index.js';
+import { catalogRoutes } from './catalog.js';
 
 export interface ApiDeps {
   db: Db;
@@ -52,6 +53,8 @@ export function createApi({ db, config, now }: ApiDeps): Hono<ApiEnv> {
       isOwner: admin.isOwner,
     });
   });
+
+  api.route('/', catalogRoutes(db));
 
   return api;
 }
