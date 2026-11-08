@@ -20,8 +20,8 @@
 - [x] اسکلت monorepo: `apps/server`، `apps/admin`، `packages/shared`؛ TypeScript strict، ESLint، Prettier، Vitest
 - [x] `docker-compose.dev.yml` با PostgreSQL
 - [x] GitHub Actions: lint + typecheck + test روی هر PR
-- [ ] config با zod، اتصال Drizzle، اولین migration
-- [ ] ربات: `/start`، ثبت مشتری، پیام خوش‌آمد، منوی اصلی، عضویت اجباری کانال
+- [x] config با zod، اتصال Drizzle، اولین migration
+- [x] ربات: `/start`، ثبت مشتری، پیام خوش‌آمد، منوی اصلی، عضویت اجباری کانال
 - [ ] ماژول catalog: شرکت / محصول / مدت + seed نمونه
 - [ ] ربات: فروشگاه (شبکه‌ی شرکت‌ها، لیست ویژه با صفحه‌بندی)، کارت محصول، بازگشت/خانه، دکمه‌های رنگی
 - [ ] Mini App: اسکلت React + احراز هویت با `initData` + چک ادمین/مالک

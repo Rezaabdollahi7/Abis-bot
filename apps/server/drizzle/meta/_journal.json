@@ -8,6 +8,13 @@
       "when": 1794164174818,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794164328950,
+      "tag": "0001_customers_wallet",
+      "breakpoints": true
     }
   ]
 }
