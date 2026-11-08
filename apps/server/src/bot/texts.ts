@@ -210,6 +210,13 @@ export const texts = {
       `💰 مبلغ ${formatToman(refund)} به کیف پول شما برگشت داده شد.`,
       ...(balance === undefined ? [] : [`موجودی فعلی: ${formatToman(balance)}`]),
     ].join('\n'),
+  expiryReminder: (line: string, expiresAt: Date) =>
+    [
+      '⏰ <b>یادآوری تمدید</b>',
+      '',
+      `اشتراک ${escapeHtml(line)} شما ${shortDate.format(expiresAt)} به پایان می‌رسد.`,
+      'برای جلوگیری از قطع شدن، همین حالا تمدید کنید 👇',
+    ].join('\n'),
   notEnoughStock: (available: number) =>
     `فقط ${faNumber.format(available)} عدد موجود است. لطفاً تعداد کمتری انتخاب کنید.`,
   confirmExpired: 'این پیش‌فاکتور منقضی شده است. لطفاً دوباره از فروشگاه انتخاب کنید.',
@@ -360,6 +367,7 @@ export const texts = {
     pay: (total: Toman) => `✅ پرداخت ${formatToman(total)} و خرید`,
     topupShortfall: (shortfall: Toman) => `💳 شارژ ${formatToman(shortfall)}`,
     quantity: (n: number) => faNumber.format(n),
+    renew: '🔁 تمدید',
   },
 } as const;
 

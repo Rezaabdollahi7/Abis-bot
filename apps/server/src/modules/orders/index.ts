@@ -1,5 +1,5 @@
 import { type RequiredFieldName, type Toman, toman } from '@abis/shared';
-import { and, asc, desc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../../db/client.js';
 import type { Cipher } from '../../lib/cipher.js';
@@ -329,4 +329,54 @@ export async function listActiveSubscriptions(
     .innerJoin(orders, eq(subscriptions.orderId, orders.id))
     .where(and(eq(orders.customerId, customerId), gt(subscriptions.expiresAt, now)))
     .orderBy(asc(subscriptions.expiresAt));
+}
+
+export const REMINDER_DAYS_BEFORE = 3;
+
+/**
+ * Marks every subscription expiring within the reminder window as reminded and
+ * returns them. Marking first (one UPDATE … RETURNING) means a reminder is sent
+ * at most once, even if two job runs overlap.
+ */
+export async function claimDueReminders(
+  db: Db,
+  now = new Date(),
+): Promise<{ subscription: Subscription; order: Order }[]> {
+  const windowEnd = new Date(now.getTime() + REMINDER_DAYS_BEFORE * DAY_MS);
+  const claimed = await db
+    .update(subscriptions)
+    .set({ remindedAt: now })
+    .where(
+      and(
+        isNull(subscriptions.remindedAt),
+        gt(subscriptions.expiresAt, now),
+        lte(subscriptions.expiresAt, windowEnd),
+      ),
+    )
+    .returning();
+  if (claimed.length === 0) return [];
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(
+      inArray(
+        orders.id,
+        claimed.map((s) => s.orderId),
+      ),
+    );
+  const byId = new Map(rows.map((o) => [o.id, o]));
+  return claimed.flatMap((subscription) => {
+    const order = byId.get(subscription.orderId);
+    return order ? [{ subscription, order }] : [];
+  });
+}
+
+/** Erases customer-provided input (passwords) whose retention has ended. Returns the count. */
+export async function purgeExpiredInput(db: Db, now = new Date()): Promise<number> {
+  const rows = await db
+    .update(orders)
+    .set({ customerInputEncrypted: null })
+    .where(and(isNotNull(orders.customerInputEncrypted), lte(orders.inputPurgeAt, now)))
+    .returning({ id: orders.id });
+  return rows.length;
 }
