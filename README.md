@@ -6,16 +6,16 @@
 
 ## سندها
 
-| سند | محتوا | زبان |
-|---|---|---|
-| [`docs/IDEA.md`](docs/IDEA.md) | ایده و رفتار کامل محصول (مرجع اصلی) | فارسی |
-| [`ROADMAP.md`](ROADMAP.md) | فازها و چک‌لیست نسخه‌ی ۱ و بعد از آن | فارسی |
-| [`GLOSSARY.md`](GLOSSARY.md) | واژه‌نامه‌ی دامنه | English + فارسی |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | معماری، ساختار ریپو، مدل داده | English |
-| [`RULES.md`](RULES.md) | قواعد کدنویسی، گیت، تست و امنیت | English |
-| [`DEPLOY.md`](DEPLOY.md) | راه‌اندازی سرور، دامنه، ربات و deploy | English |
-| [`CLAUDE.md`](CLAUDE.md) | راهنمای Claude Code در این ریپو | English |
-| [`docs/adr/`](docs/adr/) | تصمیم‌های معماری و دلیلشان | English |
+| سند                                            | محتوا                                 | زبان            |
+| ---------------------------------------------- | ------------------------------------- | --------------- |
+| [`docs/IDEA.md`](docs/IDEA.md)                 | ایده و رفتار کامل محصول (مرجع اصلی)   | فارسی           |
+| [`ROADMAP.md`](ROADMAP.md)                     | فازها و چک‌لیست نسخه‌ی ۱ و بعد از آن  | فارسی           |
+| [`GLOSSARY.md`](GLOSSARY.md)                   | واژه‌نامه‌ی دامنه                     | English + فارسی |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | معماری، ساختار ریپو، مدل داده         | English         |
+| [`RULES.md`](RULES.md)                         | قواعد کدنویسی، گیت، تست و امنیت       | English         |
+| [`DEPLOY.md`](DEPLOY.md)                       | راه‌اندازی سرور، دامنه، ربات و deploy | English         |
+| [`CLAUDE.md`](CLAUDE.md)                       | راهنمای Claude Code در این ریپو       | English         |
+| [`docs/adr/`](docs/adr/)                       | تصمیم‌های معماری و دلیلشان            | English         |
 
 ## Stack
 

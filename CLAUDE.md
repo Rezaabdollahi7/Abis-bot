@@ -31,7 +31,9 @@ Customer- and admin-facing UI text: Persian. Code, comments, commits, technical 
 
 ## Commands
 
-Not scaffolded yet (Phase 1 of the roadmap). Once it is, the source of truth is the root `package.json` scripts — read them rather than guessing.
+Root `package.json` scripts are the source of truth. Before declaring work done, run the same gate as CI: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
+
+Workspace packages: `apps/server` (bot + API), `apps/admin` (Mini App), `packages/shared` (shared types; consumed from source via the `development`/`types` export conditions, from `dist` at runtime).
 
 ## Skills
 
