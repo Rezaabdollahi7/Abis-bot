@@ -33,7 +33,7 @@ Customer- and admin-facing UI text: Persian. Code, comments, commits, technical 
 
 Root `package.json` scripts are the source of truth. Before declaring work done, run the same gate as CI: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
 
-Tests that touch the DB use `useTestDb()` from `apps/server/src/test/db.ts` against a real PostgreSQL (`TEST_DATABASE_URL`, default `abis_test` on localhost; `pnpm dev:db` creates it). After changing a module's `schema.ts`, run `pnpm --filter @abis/server db:generate` and commit the new migration in `apps/server/drizzle/`.
+Tests that touch the DB use `useTestDb()` from `apps/server/src/test/db.ts` against a real PostgreSQL (`TEST_DATABASE_URL`, default `abis_test` on localhost; `pnpm dev:db` creates it). Bot handler tests use `createTestBot()` (`apps/server/src/test/bot.ts`) and `seedTestCatalog()` (`test/fixtures.ts`). Local sample data: `pnpm --filter @abis/server db:seed`. After changing a module's `schema.ts`, run `pnpm --filter @abis/server db:generate` and commit the new migration in `apps/server/drizzle/`.
 
 Workspace packages: `apps/server` (bot + API), `apps/admin` (Mini App), `packages/shared` (shared types; consumed from source via the `development`/`types` export conditions, from `dist` at runtime).
 

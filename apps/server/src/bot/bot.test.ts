@@ -49,7 +49,7 @@ describe('main menu', () => {
 
   it('answers not-yet-built sections with a coming-soon alert', async () => {
     const t = createTestBot(getDb());
-    await t.pressButton(cb.shop);
+    await t.pressButton(cb.topup);
     expect(t.callsOf('answerCallbackQuery')[0]?.payload).toMatchObject({ show_alert: true });
   });
 });
