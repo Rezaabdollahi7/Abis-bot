@@ -6,7 +6,7 @@ import { testCipher } from '../test/cipher.js';
 import { seedTestCatalog } from '../test/fixtures.js';
 import { type ApiCall, createTestBot } from '../test/bot.js';
 import { useTestDb } from '../test/db.js';
-import { findCustomerByTelegramId } from '../modules/customers/index.js';
+import { findCustomerByTelegramId, setBanned } from '../modules/customers/index.js';
 import { updateSetting } from '../modules/settings/index.js';
 import { cb } from './keyboards.js';
 
@@ -92,6 +92,21 @@ describe('main menu', () => {
     const text = String(t.callsOf('editMessageText').at(-1)?.payload.text);
     expect(text).toContain('تراکنش‌های اخیر');
     expect(text).toContain('➕ ۲۵۰٬۰۰۰ تومان · اصلاحیه');
+  });
+});
+
+describe('banned customers', () => {
+  it('cannot use the bot', async () => {
+    const t = createTestBot(getDb());
+    await t.sendText('/start');
+    const customer = await findCustomerByTelegramId(getDb(), 1000);
+    if (!customer) throw new Error('customer missing');
+    await setBanned(getDb(), { customerId: customer.id, banned: true, actor: 1 });
+    await t.sendText('/start');
+    expect(t.sentTo(1000).at(-1)).toContain('مسدود');
+    await t.pressButton(cb.shop);
+    expect(t.callsOf('answerCallbackQuery').at(-1)?.payload).toMatchObject({ show_alert: true });
+    expect(t.callsOf('editMessageText')).toHaveLength(0);
   });
 });
 

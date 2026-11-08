@@ -22,6 +22,10 @@ const actionLabels: Record<string, string> = {
   'order.warranty_refund': 'بازپرداخت گارانتی',
   'ticket.reply': 'پاسخ تیکت',
   'ticket.close': 'بستن تیکت',
+  'customer.ban': 'مسدود کردن کاربر',
+  'customer.unban': 'رفع مسدودیت',
+  'customer.message': 'پیام مستقیم',
+  'broadcast.send': 'پیام همگانی',
 };
 
 export function AuditPage() {

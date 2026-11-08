@@ -83,6 +83,8 @@ function CustomerDialog(props: { id: number; onClose: () => void }) {
           </p>
           <h3>💰 موجودی: {formatToman(toman(c.balanceToman))}</h3>
           <AdjustmentForm customerId={c.id} onDone={reload} />
+          <DirectMessageForm customerId={c.id} />
+          <BanToggle customerId={c.id} banned={c.isBanned} onDone={reload} />
           <h3>🧾 تراکنش‌ها</h3>
           {c.ledger.length === 0 && <p className="muted">تراکنشی ثبت نشده.</p>}
           <table>
@@ -168,5 +170,57 @@ function AdjustmentForm(props: { customerId: number; onDone: () => void }) {
         ثبت
       </button>
     </details>
+  );
+}
+
+function DirectMessageForm(props: { customerId: number }) {
+  const [text, setText] = useState('');
+  const [status, setStatus] = useState<string>();
+  async function send() {
+    setStatus(undefined);
+    try {
+      await apiFetch(`/customers/${props.customerId}/message`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      });
+      setText('');
+      setStatus('✅ ارسال شد');
+    } catch (err) {
+      setStatus(
+        err instanceof ApiRequestError && err.body?.message ? err.body.message : String(err),
+      );
+    }
+  }
+  return (
+    <details className="card">
+      <summary>📬 ارسال پیام مستقیم</summary>
+      <textarea
+        className="reply-box"
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <button type="button" disabled={!text.trim()} onClick={() => void send()}>
+        ارسال
+      </button>
+      {status && <p>{status}</p>}
+    </details>
+  );
+}
+
+function BanToggle(props: { customerId: number; banned: boolean; onDone: () => void }) {
+  async function toggle() {
+    const question = props.banned ? 'رفع مسدودیت این کاربر؟' : 'این کاربر مسدود شود؟';
+    if (!window.confirm(question)) return;
+    await apiFetch(`/customers/${props.customerId}/ban`, {
+      method: 'POST',
+      body: JSON.stringify({ banned: !props.banned }),
+    });
+    props.onDone();
+  }
+  return (
+    <button type="button" className={props.banned ? '' : 'danger'} onClick={() => void toggle()}>
+      {props.banned ? '✅ رفع مسدودیت' : '🚫 مسدود کردن'}
+    </button>
   );
 }

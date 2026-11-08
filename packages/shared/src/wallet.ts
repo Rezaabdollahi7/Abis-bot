@@ -149,3 +149,18 @@ export const warrantyRefundInput = z.object({
   amountToman: z.number().int().positive(),
   reason: z.string().trim().min(3).max(300),
 });
+
+export const banInput = z.object({ banned: z.boolean() });
+export const directMessageInput = z.object({ text: z.string().trim().min(1).max(3500) });
+export const broadcastInput = z.object({ text: z.string().trim().min(1).max(3500) });
+
+export interface BroadcastDto {
+  id: number;
+  text: string;
+  total: number;
+  sent: number;
+  failed: number;
+  status: 'sending' | 'done';
+  createdAt: string;
+  finishedAt: string | null;
+}

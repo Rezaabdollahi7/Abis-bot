@@ -402,6 +402,8 @@ export const texts = {
     `❌ <b>رد شد</b> توسط ${escapeHtml(admin)} — ${escapeHtml(reason)}`,
   alreadyHandled: 'این درخواست قبلاً بررسی شده است.',
   notAdmin: 'شما دسترسی ادمین ندارید.',
+  banned: '🚫 حساب شما مسدود شده است. موجودی کیف پول شما محفوظ است.',
+  directMessage: (text: string) => `📬 <b>پیام از پشتیبانی</b>\n\n${escapeHtml(text)}`,
 
   joinRequired: (channelUrl: string) =>
     [

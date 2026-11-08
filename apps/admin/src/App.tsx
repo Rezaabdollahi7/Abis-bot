@@ -2,6 +2,7 @@ import type { MeResponse } from '@abis/shared';
 import { useEffect, useState } from 'react';
 import { ApiRequestError, apiFetch } from './api';
 import { AuditPage } from './audit/AuditPage';
+import { BroadcastPage } from './broadcast/BroadcastPage';
 import { CatalogPage } from './catalog/CatalogPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { OrdersPage } from './orders/OrdersPage';
@@ -22,6 +23,7 @@ const tabs = [
   { id: 'orders', label: 'سفارش‌ها', Page: OrdersPage },
   { id: 'tickets', label: 'تیکت‌ها', Page: TicketsPage },
   { id: 'customers', label: 'کاربران', Page: CustomersPage },
+  { id: 'broadcast', label: 'پیام همگانی', Page: BroadcastPage },
   { id: 'catalog', label: 'کاتالوگ', Page: CatalogPage },
   { id: 'settings', label: 'تنظیمات', Page: SettingsPage },
   { id: 'audit', label: 'تاریخچه', Page: AuditPage },
