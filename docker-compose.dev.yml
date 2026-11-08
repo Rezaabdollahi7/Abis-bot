@@ -1,0 +1,15 @@
+# Local development database. Start with: pnpm dev:db
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: abis
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: abis
+    ports:
+      - '5432:5432'
+    volumes:
+      - abis-dev-db:/var/lib/postgresql/data
+
+volumes:
+  abis-dev-db:
