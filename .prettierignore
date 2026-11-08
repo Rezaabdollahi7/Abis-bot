@@ -3,3 +3,4 @@ skills-lock.json
 .claude/
 dist/
 coverage/
+apps/server/drizzle/

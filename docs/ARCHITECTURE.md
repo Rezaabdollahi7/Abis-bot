@@ -45,6 +45,12 @@ packages/
 docs/                     IDEA, ARCHITECTURE, adr/
 ```
 
+### Database conventions
+
+- Each module declares its own tables in `modules/<name>/schema.ts`; `db/schema.ts` only re-exports them for the Drizzle client and drizzle-kit.
+- Drizzle runs with `casing: 'snake_case'`. Migrations are generated into `apps/server/drizzle/` and applied automatically at server boot.
+- Runtime settings are key → JSON rows validated by one zod schema in `modules/settings` (new setting = one line, no migration).
+
 ### The module rule
 
 `bot/`, `api/` and `jobs/` are **adapters**: parse input, call one module function, render output. Every business rule (prices, balances, stock, state transitions, permissions) lives in `modules/`. A module exposes a small interface and hides its tables; other modules call that interface, never its tables. This keeps logic testable without Telegram and identical across bot buttons and panel buttons (an admin approving a top-up from a chat button and from the Mini App runs the same function).

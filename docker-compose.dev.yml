@@ -10,6 +10,7 @@ services:
       - '5432:5432'
     volumes:
       - abis-dev-db:/var/lib/postgresql/data
+      - ./scripts/dev-db-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
 volumes:
   abis-dev-db:
