@@ -1,6 +1,7 @@
 import type { MeResponse } from '@abis/shared';
 import { useEffect, useState } from 'react';
 import { ApiRequestError, apiFetch } from './api';
+import { CatalogPage } from './catalog/CatalogPage';
 import { initData, telegramWebApp } from './telegram';
 
 type State =
@@ -47,10 +48,13 @@ function render(state: State) {
     case 'ready':
       return (
         <>
-          <h1>پنل ادمین</h1>
-          <p>
-            سلام {state.me.firstName} 👋 {state.me.isOwner && <span className="badge">مالک</span>}
-          </p>
+          <header className="top">
+            <h1>پنل ادمین</h1>
+            <span className="muted">
+              {state.me.firstName} {state.me.isOwner && <span className="badge">مالک</span>}
+            </span>
+          </header>
+          <CatalogPage />
         </>
       );
   }

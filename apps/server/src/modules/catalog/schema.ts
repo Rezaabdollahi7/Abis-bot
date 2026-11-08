@@ -1,3 +1,4 @@
+import type { RequiredFieldName } from '@abis/shared';
 import {
   bigint,
   boolean,
@@ -35,7 +36,7 @@ export const products = pgTable('products', {
   description: text().notNull().default(''),
   deliveryMethod: deliveryMethod().notNull(),
   /** Inputs asked from the customer for email activation, e.g. ["email", "password"]. */
-  requiredFields: jsonb().$type<RequiredField[]>().notNull().default([]),
+  requiredFields: jsonb().$type<RequiredFieldName[]>().notNull().default([]),
   warrantyDays: integer().notNull().default(0),
   /** Estimated minutes for manual delivery. */
   etaMinutes: integer(),
@@ -56,5 +57,3 @@ export const variants = pgTable('variants', {
   isActive: boolean().notNull().default(true),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
-
-export type RequiredField = 'email' | 'password' | 'note';
