@@ -2,7 +2,7 @@
 
 فروشگاه تلگرامی اکانت‌های هوش مصنوعی — ربات فروش فارسی با کیف پول تومانی (کارت به کارت دستی) و پنل ادمین داخل Telegram Mini App.
 
-> وضعیت: **مرحله‌ی طراحی** — هنوز کدی نوشته نشده. قدم بعدی: [فاز ۰ در ROADMAP](ROADMAP.md).
+> وضعیت: **در حال توسعه** — فازهای ۱ تا ۳ پیاده شده‌اند. پیشرفت: [ROADMAP](ROADMAP.md).
 
 ## سندها
 
@@ -19,7 +19,7 @@
 
 ## Stack
 
-TypeScript · pnpm monorepo · grammY (bot) · Hono (API) · React + Vite (Mini App) · PostgreSQL + Drizzle · pg-boss (jobs) · Docker Compose + Caddy on a VPS outside Iran.
+TypeScript · pnpm monorepo · grammY (bot) · Hono (API) · React + Vite (Mini App) · PostgreSQL + Drizzle · Docker Compose + Caddy on a VPS outside Iran.
 
 ## Claude Code skills
 

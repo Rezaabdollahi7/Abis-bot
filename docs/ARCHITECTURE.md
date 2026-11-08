@@ -10,7 +10,7 @@ Product behaviour lives in [`IDEA.md`](IDEA.md); vocabulary in [`../GLOSSARY.md`
         │  Mini App (admin)  ── HTTPS ─────────────► │    ├─ /bot/<secret>  → server (grammY webhook)    │
         │                                            │    ├─ /api/*         → server (Hono)              │
         │                                            │    └─ /*             → admin static build         │
-        │                                            │  server (Node 22): bot + API + pg-boss workers    │
+        │                                            │  server (Node 22): bot + API + hourly jobs         │
         │                                            │  PostgreSQL 16                                    │
         │                                            │  nightly backup job → private Telegram channel    │
         └────────────────────────────────────────────┴───────────────────────────────────────────────────┘
@@ -36,7 +36,7 @@ apps/
         settings/         runtime settings (bank cards, limits, toggles, texts)
       bot/                grammY composers: thin adapters calling modules
       api/                Hono routes for the Mini App: thin adapters calling modules
-      jobs/               pg-boss workers: reminders, password purge, backup, broadcast
+      jobs/               periodic jobs: reminders, password purge, backup
       db/                 Drizzle schema, migrations, client
       lib/                crypto, money, telegram helpers, config (zod-validated env)
   admin/                  React + Vite Telegram Mini App (admin panel)
@@ -112,7 +112,9 @@ Store Telegram's `file_unique_id` on every top-up; if a pending/approved top-up 
 
 The admin panel sends Telegram `initData` on every request. The server validates its HMAC with the bot token (reject if `auth_date` is older than 24h), then checks the Telegram user id is an owner (env) or in `admins`. No passwords, no sessions of our own.
 
-## Background jobs (pg-boss, stored in Postgres — no Redis)
+## Background jobs
+
+An in-process hourly timer (`jobs/index.ts`), no queue library: one server instance is enough for this shop. Each job claims its rows with a guarded `UPDATE … RETURNING`, so an overlapping run can never send a reminder twice or touch a row twice. Revisit (e.g. pg-boss) only if the server is ever scaled to several instances.
 
 | Job                                                         | Schedule        |
 | ----------------------------------------------------------- | --------------- |
