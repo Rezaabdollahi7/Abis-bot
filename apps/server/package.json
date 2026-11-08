@@ -1,0 +1,26 @@
+{
+  "name": "@abis/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --conditions=development --env-file-if-exists=../../.env src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:seed": "tsx --conditions=development --env-file-if-exists=../../.env src/scripts/seed.ts"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@abis/shared": "workspace:*",
+    "@hono/node-server": "^2.1.6",
+    "drizzle-orm": "^0.45.4",
+    "grammy": "^1.46.0",
+    "hono": "^4.13.17",
+    "postgres": "^3.4.9",
+    "zod": "^4.6.7"
+  }
+}

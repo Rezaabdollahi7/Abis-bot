@@ -1,0 +1,323 @@
+/* Follows the Telegram client theme via the CSS variables the WebApp script sets. */
+:root {
+  color-scheme: light dark;
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #111111);
+  --hint: var(--tg-theme-hint-color, #888888);
+  --accent: var(--tg-theme-button-color, #2481cc);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --surface: var(--tg-theme-secondary-bg-color, #f2f2f5);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Vazirmatn, Tahoma, system-ui, sans-serif;
+}
+
+.page {
+  padding: 16px;
+}
+
+.muted {
+  color: var(--hint);
+}
+
+.badge {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.8em;
+}
+
+h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.top,
+.section-header,
+.card-header,
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+button {
+  font: inherit;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+  padding: 4px 8px;
+}
+button:disabled {
+  opacity: 0.6;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.product {
+  border-top: 1px solid color-mix(in srgb, var(--hint) 30%, transparent);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.inactive {
+  opacity: 0.55;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.75em;
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-inline-start: 4px;
+  background: color-mix(in srgb, var(--hint) 20%, transparent);
+}
+.tag.accent {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+th,
+td {
+  text-align: start;
+  padding: 6px 4px;
+}
+th {
+  color: var(--hint);
+  font-weight: normal;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal {
+  background: var(--bg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.field input,
+.field select,
+.field textarea {
+  font: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent);
+  background: var(--bg);
+  color: var(--text);
+}
+.toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.error {
+  color: #d33;
+}
+
+.card-header .row {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+.tabs button {
+  background: var(--surface);
+  color: var(--text);
+  white-space: nowrap;
+}
+.tabs button.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.mono {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.5px;
+}
+
+button.danger {
+  background: #d9534f;
+  color: #fff;
+}
+.warning {
+  color: #b7791f;
+  font-weight: bold;
+}
+.receipt {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.search,
+select,
+.row input {
+  font: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent);
+  background: var(--bg);
+  color: var(--text);
+}
+.search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: start;
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.positive {
+  color: #2f9e44;
+}
+.negative {
+  color: #d9534f;
+}
+.tabs.small button {
+  padding: 4px 10px;
+  font-size: 0.9em;
+}
+pre {
+  font-size: 0.75em;
+  white-space: pre-wrap;
+}
+details summary {
+  cursor: pointer;
+}
+
+.copyable {
+  cursor: copy;
+  background: color-mix(in srgb, var(--hint) 15%, transparent);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bubble {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px 10px;
+  max-width: 85%;
+  align-self: flex-start;
+}
+.bubble.mine {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg));
+}
+.pre-wrap {
+  white-space: pre-wrap;
+}
+.reply-box {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hint) 40%, transparent);
+  background: var(--bg);
+  color: var(--text);
+}
+
+progress {
+  width: 100%;
+  height: 6px;
+  margin: 6px 0;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 4px;
+}
+.stat strong {
+  font-size: 1.5rem;
+}
+.stat.attention {
+  background: color-mix(in srgb, #d9534f 18%, var(--surface));
+}

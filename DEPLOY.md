@@ -6,35 +6,35 @@ Why the server must be outside Iran: [ADR-0002](docs/adr/0002-vps-outside-iran.m
 
 ## 1. Things to obtain
 
-| Item | Where | Cost | When |
-|---|---|---|---|
-| Dev bot token | `@BotFather` → `/newbot` | free | Phase 0 |
-| Prod bot token | `@BotFather` → `/newbot` | free | Phase 0 (reserve the username) |
-| Public channel | Telegram | free | Phase 0 |
-| Private backup channel | Telegram (owners + prod bot as admin) | free | Phase 0 |
-| Owners' Telegram user ids | `@userinfobot` | free | Phase 0 |
-| VPS **outside Iran** | ParsVDS, Germany/Netherlands location, Ubuntu 24.04, ≥2 vCPU, ≥2 GB RAM, ≥40 GB disk | paid, Toman | Phase 5 |
-| Domain | IRNIC (`.ir`) | paid | Phase 5 |
-| DNS hosting | the VPS provider's DNS panel or ArvanCloud DNS (IRNIC only delegates nameservers) — confirm availability when buying | usually free | Phase 5 |
-| HTTPS certificate | Let's Encrypt, automatic via Caddy | free | Phase 5 |
+| Item                      | Where                                                                                                                | Cost         | When                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------ |
+| Dev bot token             | `@BotFather` → `/newbot`                                                                                             | free         | Phase 0                        |
+| Prod bot token            | `@BotFather` → `/newbot`                                                                                             | free         | Phase 0 (reserve the username) |
+| Public channel            | Telegram                                                                                                             | free         | Phase 0                        |
+| Private backup channel    | Telegram (owners + prod bot as admin)                                                                                | free         | Phase 0                        |
+| Owners' Telegram user ids | `@userinfobot`                                                                                                       | free         | Phase 0                        |
+| VPS **outside Iran**      | ParsVDS, Germany/Netherlands location, Ubuntu 24.04, ≥2 vCPU, ≥2 GB RAM, ≥40 GB disk                                 | paid, Toman  | Phase 5                        |
+| Domain                    | IRNIC (`.ir`)                                                                                                        | paid         | Phase 5                        |
+| DNS hosting               | the VPS provider's DNS panel or ArvanCloud DNS (IRNIC only delegates nameservers) — confirm availability when buying | usually free | Phase 5                        |
+| HTTPS certificate         | Let's Encrypt, automatic via Caddy                                                                                   | free         | Phase 5                        |
 
 ## 2. Environment variables
 
 Defined in `.env.example` (source of truth). On the server, copy to `.env` and fill in. Never commit `.env`.
 
-| Variable | Meaning |
-|---|---|
-| `NODE_ENV` | `production` on the server |
-| `BOT_TOKEN` | prod bot token |
-| `WEBHOOK_SECRET` | random string; used in the webhook path and Telegram `secret_token` |
-| `PUBLIC_URL` | `https://<domain>` |
-| `OWNER_TELEGRAM_IDS` | comma-separated user ids of the two owners |
-| `CHANNEL_ID` | public channel `@username` or id (for forced join) |
-| `BACKUP_CHANNEL_ID` | private backup channel id |
-| `DATABASE_URL` | `postgres://abis:<password>@db:5432/abis` |
-| `POSTGRES_PASSWORD` | DB password |
-| `ENCRYPTION_KEY` | 32 random bytes, base64 — **losing it makes stock and backups unreadable; store a copy in both owners' password managers** |
-| `BACKUP_PASSPHRASE` | passphrase for encrypting nightly dumps; store with the key |
+| Variable             | Meaning                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`           | `production` on the server                                                                                                 |
+| `BOT_TOKEN`          | prod bot token                                                                                                             |
+| `WEBHOOK_SECRET`     | random string; used in the webhook path and Telegram `secret_token`                                                        |
+| `PUBLIC_URL`         | `https://<domain>`                                                                                                         |
+| `OWNER_TELEGRAM_IDS` | comma-separated user ids of the two owners                                                                                 |
+| `CHANNEL_ID`         | public channel `@username` or id (for forced join)                                                                         |
+| `BACKUP_CHANNEL_ID`  | private backup channel id                                                                                                  |
+| `DATABASE_URL`       | `postgres://abis:<password>@db:5432/abis`                                                                                  |
+| `POSTGRES_PASSWORD`  | DB password                                                                                                                |
+| `ENCRYPTION_KEY`     | 32 random bytes, base64 — **losing it makes stock and backups unreadable; store a copy in both owners' password managers** |
+| `BACKUP_PASSPHRASE`  | passphrase for encrypting nightly dumps; store with the key                                                                |
 
 Generate secrets:
 

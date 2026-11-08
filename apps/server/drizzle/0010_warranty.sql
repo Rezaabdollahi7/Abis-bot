@@ -1,0 +1,1 @@
+ALTER TABLE "orders" ADD COLUMN "warranty_refunded_at" timestamp with time zone;

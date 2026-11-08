@@ -4,7 +4,7 @@ Abis (working name): a Persian Telegram shop selling AI-service subscriptions, p
 
 ## Your role
 
-The two owners write the code. You are a **pair programmer and reviewer**: explain, review, debug, propose designs, and write code when asked for it. Keep changes scoped to the request, and when a request conflicts with the docs below, point at the conflict before acting.
+You write all the code; the owner reviews PRs and tests on Telegram. Work through [`ROADMAP.md`](ROADMAP.md) one item per PR, keep each PR scoped to its item, and when a request conflicts with the docs below, point at the conflict before acting.
 
 ## Read before working
 
@@ -31,7 +31,11 @@ Customer- and admin-facing UI text: Persian. Code, comments, commits, technical 
 
 ## Commands
 
-Not scaffolded yet (Phase 1 of the roadmap). Once it is, the source of truth is the root `package.json` scripts — read them rather than guessing.
+Root `package.json` scripts are the source of truth. Before declaring work done, run the same gate as CI: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
+
+Tests that touch the DB use `useTestDb()` from `apps/server/src/test/db.ts` against a real PostgreSQL (`TEST_DATABASE_URL`, default `abis_test` on localhost; `pnpm dev:db` creates it). Bot handler tests use `createTestBot()` (`apps/server/src/test/bot.ts`) and `seedTestCatalog()` (`test/fixtures.ts`). Local sample data: `pnpm --filter @abis/server db:seed`. After changing a module's `schema.ts`, run `pnpm --filter @abis/server db:generate` and commit the new migration in `apps/server/drizzle/`.
+
+Workspace packages: `apps/server` (bot + API), `apps/admin` (Mini App), `packages/shared` (shared types; consumed from source via the `development`/`types` export conditions, from `dist` at runtime).
 
 ## Skills
 

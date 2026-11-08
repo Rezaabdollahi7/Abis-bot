@@ -1,0 +1,35 @@
+import { AUTH_SCHEME, type ApiError } from '@abis/shared';
+import { initData } from './telegram';
+
+export class ApiRequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: ApiError | undefined,
+  ) {
+    super(`API ${status}: ${body?.error ?? 'unknown'}`);
+  }
+}
+
+/** Calls the admin API with the Telegram initData attached. */
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `${AUTH_SCHEME} ${initData()}`);
+  if (init.body) headers.set('Content-Type', 'application/json');
+  const res = await fetch(`/api${path}`, { ...init, headers });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => undefined)) as ApiError | undefined;
+    throw new ApiRequestError(res.status, body);
+  }
+  // 204 No Content (e.g. DELETE) has no body to parse.
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+/** Like apiFetch but returns the raw body (e.g. a receipt image). */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const res = await fetch(`/api${path}`, {
+    headers: { Authorization: `${AUTH_SCHEME} ${initData()}` },
+  });
+  if (!res.ok) throw new ApiRequestError(res.status, undefined);
+  return res.blob();
+}
