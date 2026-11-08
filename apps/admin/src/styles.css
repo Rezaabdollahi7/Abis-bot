@@ -1,0 +1,33 @@
+/* Follows the Telegram client theme via the CSS variables the WebApp script sets. */
+:root {
+  color-scheme: light dark;
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #111111);
+  --hint: var(--tg-theme-hint-color, #888888);
+  --accent: var(--tg-theme-button-color, #2481cc);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --surface: var(--tg-theme-secondary-bg-color, #f2f2f5);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Vazirmatn, Tahoma, system-ui, sans-serif;
+}
+
+.page {
+  padding: 16px;
+}
+
+.muted {
+  color: var(--hint);
+}
+
+.badge {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.8em;
+}
