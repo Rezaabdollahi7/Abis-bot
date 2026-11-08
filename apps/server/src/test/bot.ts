@@ -67,6 +67,8 @@ export function createTestBot(
     } as Update);
 
   return {
+    /** The bot's API client, for calling alert helpers directly in tests. */
+    api: bot.api,
     calls,
     /** Calls of one method, in order. */
     callsOf: (method: string) => calls.filter((call) => call.method === method),
@@ -100,6 +102,12 @@ export function createTestBot(
       }),
     sendContact: (phone: string, contactUserId = TEST_CUSTOMER_ID, from = TEST_CUSTOMER_ID) =>
       message(from, { contact: { phone_number: phone, first_name: 'X', user_id: contactUserId } }),
+    /** A text message that replies to an earlier bot message. */
+    replyTo: (messageId: number, text: string, from = TEST_CUSTOMER_ID) =>
+      message(from, {
+        text,
+        reply_to_message: { message_id: messageId, date: 0, chat: chat(from), text: 'alert' },
+      }),
     pressButton: (data: string, from = TEST_CUSTOMER_ID) =>
       bot.handleUpdate({
         update_id: ++updateId,

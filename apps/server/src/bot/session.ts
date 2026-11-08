@@ -6,7 +6,14 @@ import { botSessions } from '../db/infra-schema.js';
 
 /** Where a customer is in a multi-step conversation. Empty = idle. */
 export interface SessionData {
-  step?: 'phone' | 'amount' | 'receipt' | 'order_input' | 'ticket_new' | 'ticket_reply';
+  step?:
+    | 'phone'
+    | 'amount'
+    | 'receipt'
+    | 'order_input'
+    | 'ticket_new'
+    | 'ticket_reply'
+    | 'admin_deliver';
   /** Chosen top-up amount and the card shown for it, while waiting for the receipt. */
   topupAmount?: number;
   topupCardId?: number;
@@ -19,6 +26,8 @@ export interface SessionData {
   };
   /** A ticket being opened (topic chosen, waiting for the first message) or replied to. */
   ticket?: { topic?: 'order' | 'payment' | 'general'; orderId?: number; ticketId?: number };
+  /** Admin: the queued order whose delivery message is being written. */
+  adminOrderId?: number;
 }
 
 /** Postgres-backed session storage so a restart never loses a half-finished top-up. */

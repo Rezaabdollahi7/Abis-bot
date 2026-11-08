@@ -32,3 +32,16 @@ export async function listNotifications(
       ),
     );
 }
+
+/** Which entity an admin alert message belongs to (to act on a Reply to it). */
+export async function findNotificationEntity(
+  db: Db,
+  chatId: number,
+  messageId: number,
+): Promise<{ type: string; id: number } | undefined> {
+  const [row] = await db
+    .select({ type: adminNotifications.entityType, id: adminNotifications.entityId })
+    .from(adminNotifications)
+    .where(and(eq(adminNotifications.chatId, chatId), eq(adminNotifications.messageId, messageId)));
+  return row;
+}

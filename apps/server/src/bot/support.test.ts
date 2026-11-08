@@ -68,7 +68,12 @@ describe('support tickets in the bot', () => {
     expect(ticket?.orderId).toBe(order.order.id);
     const [message] = await listMessages(getDb(), 1);
     expect(message).toMatchObject({ fileId: 'big-error-shot', fileKind: 'photo' });
-    expect(t.sentTo(OWNER).at(-1)).toContain('فایل پیوست');
+    const toAdmin = t.sentTo(OWNER).join('\n');
+    expect(toAdmin).toContain('فایل پیوست');
+    expect(t.callsOf('sendPhoto').at(-1)?.payload).toMatchObject({
+      chat_id: OWNER,
+      photo: 'big-error-shot',
+    });
   });
 
   it('lets the customer view, reply to and close their ticket', async () => {

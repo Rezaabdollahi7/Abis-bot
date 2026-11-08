@@ -25,11 +25,15 @@ export async function broadcastToAdmins(
   db: Db,
   ownerIds: readonly number[],
   text: string,
+  keyboard?: InlineKeyboard,
 ): Promise<{ chatId: number; messageId: number }[]> {
   const sent = [];
   for (const chatId of await listAdminTelegramIds(db, ownerIds)) {
     try {
-      const message = await api.sendMessage(chatId, text, { parse_mode: 'HTML' });
+      const message = await api.sendMessage(chatId, text, {
+        parse_mode: 'HTML',
+        ...(keyboard ? { reply_markup: keyboard } : {}),
+      });
       sent.push({ chatId, messageId: message.message_id });
     } catch (error) {
       if (!(error instanceof GrammyError)) throw error;
@@ -76,6 +80,24 @@ async function renderOrderAlert(db: Db, cipher: Cipher, order: Order): Promise<s
   return status ? `${body}\n\n${status}` : body;
 }
 
+export const orderAlertCb = {
+  deliver: (id: number) => `od:d:${id}`,
+  rejectMenu: (id: number) => `od:r:${id}`,
+  reject: (id: number, reason: number) => `od:x:${id}:${reason}`,
+  back: (id: number) => `od:b:${id}`,
+  password: (id: number) => `od:p:${id}`,
+};
+
+export function orderAlertKeyboard(orderId: number, hasPassword: boolean): InlineKeyboard {
+  const keyboard = new InlineKeyboard()
+    .text(texts.buttons.deliver, orderAlertCb.deliver(orderId))
+    .success()
+    .text(texts.buttons.rejectRefund, orderAlertCb.rejectMenu(orderId))
+    .danger();
+  if (hasPassword) keyboard.row().text(texts.buttons.showPassword, orderAlertCb.password(orderId));
+  return keyboard;
+}
+
 /** A queued order needs a human: tell every admin what to activate and for whom. */
 export async function alertAdminsOfQueuedOrder(
   api: Api,
@@ -89,6 +111,10 @@ export async function alertAdminsOfQueuedOrder(
     db,
     ownerIds,
     await renderOrderAlert(db, cipher, result.order),
+    orderAlertKeyboard(
+      result.order.id,
+      readCustomerInput(cipher, result.order).password !== undefined,
+    ),
   );
   await recordNotifications(db, { type: ENTITY, id: result.order.id }, sent);
 }
