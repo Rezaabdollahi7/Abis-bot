@@ -5,6 +5,7 @@ const validEnv = {
   BOT_TOKEN: '123:abc',
   OWNER_TELEGRAM_IDS: '111, 222',
   DATABASE_URL: 'postgres://abis:pw@localhost:5432/abis',
+  ENCRYPTION_KEY: 'a2V5',
 };
 
 describe('loadConfig', () => {

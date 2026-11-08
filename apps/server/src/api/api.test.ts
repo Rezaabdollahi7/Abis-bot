@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { signInitData } from '../lib/init-data.js';
 import { addAdmin } from '../modules/admins/index.js';
 import { fakeTelegram } from '../test/api.js';
+import { testCipher } from '../test/cipher.js';
 import { useTestDb } from '../test/db.js';
 import { createApi } from './index.js';
 
@@ -13,6 +14,7 @@ function api() {
   return createApi({
     db: getDb(),
     telegram: fakeTelegram().api,
+    cipher: testCipher,
     config: { BOT_TOKEN: TOKEN, OWNER_TELEGRAM_IDS: [OWNER] },
   });
 }

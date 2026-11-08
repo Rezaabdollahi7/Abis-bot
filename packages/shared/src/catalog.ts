@@ -59,3 +59,14 @@ export interface CatalogProviderDto extends ProviderInput {
 export interface CatalogResponse {
   providers: CatalogProviderDto[];
 }
+
+export interface StockItemDto {
+  id: number;
+  status: 'available' | 'sold';
+  /** Masked first line, e.g. "https://…ab12". */
+  preview: string;
+  orderId: number | null;
+  createdAt: string;
+}
+
+export const addStockInput = z.object({ text: z.string().min(1).max(100_000) });

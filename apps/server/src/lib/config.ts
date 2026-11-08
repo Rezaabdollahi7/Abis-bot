@@ -17,6 +17,8 @@ const envSchema = z.object({
   BOT_TOKEN: z.string().min(1),
   OWNER_TELEGRAM_IDS: telegramIdList,
   DATABASE_URL: z.url(),
+  /** 32 random bytes, base64. Losing it makes stock and customer passwords unreadable. */
+  ENCRYPTION_KEY: z.string().min(1),
   /** Public channel `@username` (or numeric id) for the channel button and forced join. */
   CHANNEL_ID: z.string().min(1).optional(),
 });

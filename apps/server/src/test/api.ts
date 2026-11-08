@@ -3,6 +3,7 @@ import { createApi } from '../api/index.js';
 import type { Db } from '../db/client.js';
 import { signInitData } from '../lib/init-data.js';
 import type { ApiCall } from './bot.js';
+import { testCipher } from './cipher.js';
 
 export const TEST_BOT_TOKEN = '123:secret';
 export const TEST_OWNER_ID = 1;
@@ -33,6 +34,7 @@ export function adminClient(
   const api = createApi({
     db,
     telegram: telegram.api,
+    cipher: testCipher,
     config: { BOT_TOKEN: TEST_BOT_TOKEN, OWNER_TELEGRAM_IDS: [TEST_OWNER_ID] },
   });
   const initData = signInitData(
@@ -46,6 +48,7 @@ export function adminClient(
   return {
     telegramCalls: telegram.calls,
     get: (path: string) => api.request(path, { headers }),
+    delete: (path: string) => api.request(path, { method: 'DELETE', headers }),
     send: (method: 'POST' | 'PATCH' | 'PUT', path: string, body: unknown) =>
       api.request(path, { method, headers, body: JSON.stringify(body) }),
   };
