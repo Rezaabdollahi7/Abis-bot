@@ -134,3 +134,18 @@ export interface TicketDetailDto extends TicketSummaryDto {
 }
 
 export const ticketReplyInput = z.object({ text: z.string().trim().min(1).max(3500) });
+
+export interface WarrantyDto {
+  orderId: number;
+  status: OrderStatus;
+  totalToman: number;
+  warrantyEndsAt: string | null;
+  underWarranty: boolean;
+  suggestedRefundToman: number;
+  alreadyRefunded: boolean;
+}
+
+export const warrantyRefundInput = z.object({
+  amountToman: z.number().int().positive(),
+  reason: z.string().trim().min(3).max(300),
+});

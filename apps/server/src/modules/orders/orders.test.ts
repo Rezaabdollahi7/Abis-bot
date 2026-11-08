@@ -1,19 +1,24 @@
 import { toman } from '@abis/shared';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { testCipher } from '../../test/cipher.js';
 import { useTestDb } from '../../test/db.js';
 import { seedTestCatalog } from '../../test/fixtures.js';
 import { getVariantView } from '../catalog/index.js';
+import { products } from '../catalog/schema.js';
 import { registerCustomer } from '../customers/index.js';
 import { createAdjustment, getBalance, listLedger } from '../wallet/index.js';
 import {
   deliverOrder,
+  WarrantyError,
   getOrder,
+  getWarrantyInfo,
   listActiveSubscriptions,
   listOrders,
   purchase,
   readCustomerInput,
   readDeliveryNote,
+  refundWarranty,
   rejectOrder,
   validateInput,
 } from './index.js';
@@ -232,5 +237,65 @@ describe('manual delivery', () => {
       a.order.id,
       b.order.id,
     ]);
+  });
+});
+
+describe('warranty', () => {
+  async function deliveredGemini() {
+    const c = await seedTestCatalog(getDb());
+    await getDb().update(products).set({ warrantyDays: 30 }).where(eq(products.id, c.gemini.id));
+    const customer = await richCustomer(1_500_000);
+    const result = await buy(customer.id, c.gemini12m.id, 1);
+    if (!result.ok) throw new Error(result.reason);
+    return { customer, order: result.order };
+  }
+
+  it('suggests the unused share of the price while under warranty', async () => {
+    const { order } = await deliveredGemini();
+    const in90Days = new Date(Date.now() + 90 * 86_400_000);
+    const now = await getWarrantyInfo(getDb(), order);
+    expect(now.underWarranty).toBe(true);
+    expect(now.suggestedRefund).toBeGreaterThanOrEqual(1_495_000);
+    const later = await getWarrantyInfo(getDb(), order, in90Days);
+    expect(later.underWarranty).toBe(false);
+    // 360-day plan, ~270 days left → ~75%
+    expect(later.suggestedRefund).toBeGreaterThan(1_100_000);
+    expect(later.suggestedRefund).toBeLessThan(1_130_000);
+  });
+
+  it('refunds once, ends the subscription and credits the wallet', async () => {
+    const { customer, order } = await deliveredGemini();
+    const results = await Promise.allSettled([
+      refundWarranty(getDb(), {
+        orderId: order.id,
+        actor: 1,
+        amount: toman(1_000_000),
+        reason: 'اکانت از کار افتاد',
+      }),
+      refundWarranty(getDb(), {
+        orderId: order.id,
+        actor: 2,
+        amount: toman(1_000_000),
+        reason: 'اکانت از کار افتاد',
+      }),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(await getBalance(getDb(), customer.id)).toBe(1_000_000);
+    expect(await listActiveSubscriptions(getDb(), customer.id)).toEqual([]);
+    const reloaded = await getOrder(getDb(), order.id);
+    if (!reloaded) throw new Error('missing');
+    expect((await getWarrantyInfo(getDb(), reloaded)).alreadyRefunded).toBe(true);
+  });
+
+  it('refuses amounts above the order total and undelivered orders', async () => {
+    const { order } = await deliveredGemini();
+    await expect(
+      refundWarranty(getDb(), {
+        orderId: order.id,
+        actor: 1,
+        amount: toman(9_999_999),
+        reason: 'x',
+      }),
+    ).rejects.toThrow(WarrantyError);
   });
 });
