@@ -10,5 +10,4 @@ coverage/
 .vite/
 *.tsbuildinfo
 backups/
-*.sql
 *.sql.gpg
