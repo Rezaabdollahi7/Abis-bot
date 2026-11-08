@@ -20,7 +20,7 @@ describe('/start', () => {
 
     expect(await findCustomerByTelegramId(getDb(), 1000)).toBeDefined();
     const [reply] = t.callsOf('sendMessage');
-    expect(reply?.payload.text).toContain('Reza');
+    expect(reply?.payload.text).toContain('User1000');
     expect(reply?.payload.text).toContain('۰ تومان');
     expect(buttonsOf(reply)).toEqual([
       '🛍 فروشگاه',
@@ -49,7 +49,7 @@ describe('main menu', () => {
 
   it('answers not-yet-built sections with a coming-soon alert', async () => {
     const t = createTestBot(getDb());
-    await t.pressButton(cb.topup);
+    await t.pressButton(cb.support);
     expect(t.callsOf('answerCallbackQuery')[0]?.payload).toMatchObject({ show_alert: true });
   });
 });

@@ -1,4 +1,4 @@
-import { Bot, type BotConfig, GrammyError } from 'grammy';
+import { Bot, type BotConfig, GrammyError, session } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Config } from '../lib/config.js';
 import { registerCustomer } from '../modules/customers/index.js';
@@ -6,12 +6,15 @@ import { getSettings } from '../modules/settings/index.js';
 import { getBalance } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
+import { sessionStorage } from './session.js';
 import { shopComposer } from './shop.js';
 import { texts } from './texts.js';
+import { topupAlertComposer } from './topup-alerts.js';
+import { topupComposer } from './topup.js';
 
 export interface BotDeps {
   db: Db;
-  config: Pick<Config, 'BOT_TOKEN' | 'CHANNEL_ID'>;
+  config: Pick<Config, 'BOT_TOKEN' | 'CHANNEL_ID' | 'OWNER_TELEGRAM_IDS'>;
   /** Tests inject botInfo so the bot never calls getMe. */
   botConfig?: BotConfig<BotContext>;
 }
@@ -34,6 +37,17 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
     await next();
   });
 
+  pm.use(
+    session({
+      initial: () => ({}),
+      storage: sessionStorage(db),
+      getSessionKey: (ctx) => ctx.from?.id.toString(),
+    }),
+  );
+
+  // Admin alert buttons work regardless of forced join.
+  pm.use(topupAlertComposer(db, config.OWNER_TELEGRAM_IDS));
+
   // 2. Forced join gate (setting can be toggled from the panel).
   pm.use(async (ctx, next) => {
     const { forcedJoin } = await getSettings(db);
@@ -52,6 +66,7 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
   }
 
   pm.command('start', async (ctx) => {
+    ctx.session = {};
     await ctx.reply(await homeText(ctx), {
       parse_mode: 'HTML',
       reply_markup: mainMenu(channelLink),
@@ -59,6 +74,7 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
   });
 
   pm.callbackQuery([cb.home, cb.joinCheck], async (ctx) => {
+    ctx.session = {};
     await ctx.answerCallbackQuery();
     await ctx.editMessageText(await homeText(ctx), {
       parse_mode: 'HTML',
@@ -82,9 +98,10 @@ export function createBot({ db, config, botConfig }: BotDeps): Bot<BotContext> {
   });
 
   pm.use(shopComposer(db));
+  pm.use(topupComposer(db, config.OWNER_TELEGRAM_IDS));
 
   // Placeholders until their roadmap items land.
-  pm.callbackQuery([cb.topup, cb.support], (ctx) =>
+  pm.callbackQuery([cb.support], (ctx) =>
     ctx.answerCallbackQuery({ text: texts.comingSoon, show_alert: true }),
   );
 

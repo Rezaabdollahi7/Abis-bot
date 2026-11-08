@@ -1,5 +1,16 @@
-import { bigint, bigserial, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  bigserial,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { customers } from '../customers/schema.js';
+import { bankCards } from '../settings/schema.js';
 
 export const ledgerEntryKind = pgEnum('ledger_entry_kind', [
   'topup',
@@ -23,3 +34,31 @@ export const ledgerEntries = pgTable('ledger_entries', {
   createdByAdminTelegramId: bigint({ mode: 'number' }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+export const topupStatus = pgEnum('topup_status', ['pending', 'approved', 'rejected']);
+
+/** A customer's card-to-card top-up request, waiting for an admin decision. */
+export const topups = pgTable(
+  'topups',
+  {
+    id: serial().primaryKey(),
+    customerId: integer()
+      .notNull()
+      .references(() => customers.id),
+    claimedAmountToman: bigint({ mode: 'number' }).notNull(),
+    approvedAmountToman: bigint({ mode: 'number' }),
+    bankCardId: integer()
+      .notNull()
+      .references(() => bankCards.id),
+    receiptFileId: text().notNull(),
+    /** Telegram's stable id for the file; the same image re-sent has the same value. */
+    receiptFileUniqueId: text().notNull(),
+    duplicateOfTopupId: integer(),
+    status: topupStatus().notNull().default('pending'),
+    rejectReason: text(),
+    handledByTelegramId: bigint({ mode: 'number' }),
+    handledAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index().on(table.receiptFileUniqueId), index().on(table.status)],
+);

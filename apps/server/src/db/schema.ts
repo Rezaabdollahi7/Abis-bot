@@ -4,6 +4,8 @@ export * from '../modules/admins/schema.js';
 export * from '../modules/audit/schema.js';
 export * from '../modules/catalog/schema.js';
 export * from '../modules/customers/schema.js';
+export * from '../modules/notifications/schema.js';
 export * from '../modules/settings/schema.js';
 export * from '../modules/stock/schema.js';
 export * from '../modules/wallet/schema.js';
+export * from './infra-schema.js';
