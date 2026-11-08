@@ -6,7 +6,7 @@ import { botSessions } from '../db/infra-schema.js';
 
 /** Where a customer is in a multi-step conversation. Empty = idle. */
 export interface SessionData {
-  step?: 'phone' | 'amount' | 'receipt' | 'order_input';
+  step?: 'phone' | 'amount' | 'receipt' | 'order_input' | 'ticket_new' | 'ticket_reply';
   /** Chosen top-up amount and the card shown for it, while waiting for the receipt. */
   topupAmount?: number;
   topupCardId?: number;
@@ -17,6 +17,8 @@ export interface SessionData {
     values: Partial<Record<RequiredFieldName, string>>;
     key?: string;
   };
+  /** A ticket being opened (topic chosen, waiting for the first message) or replied to. */
+  ticket?: { topic?: 'order' | 'payment' | 'general'; orderId?: number; ticketId?: number };
 }
 
 /** Postgres-backed session storage so a restart never loses a half-finished top-up. */

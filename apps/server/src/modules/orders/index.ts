@@ -380,3 +380,13 @@ export async function purgeExpiredInput(db: Db, now = new Date()): Promise<numbe
     .returning({ id: orders.id });
   return rows.length;
 }
+
+/** A customer's latest orders (for linking a support ticket to one). */
+export async function listCustomerOrders(db: Db, customerId: number, limit = 8): Promise<Order[]> {
+  return db
+    .select()
+    .from(orders)
+    .where(eq(orders.customerId, customerId))
+    .orderBy(desc(orders.id))
+    .limit(limit);
+}

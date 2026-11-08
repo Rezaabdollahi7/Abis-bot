@@ -10,6 +10,7 @@ import { catalogRoutes } from './catalog.js';
 import { orderRoutes } from './orders.js';
 import { settingsRoutes } from './settings.js';
 import { stockRoutes } from './stock.js';
+import { ticketRoutes } from './tickets.js';
 import { walletRoutes } from './wallet.js';
 
 export interface ApiDeps {
@@ -67,6 +68,7 @@ export function createApi({ db, telegram, cipher, config, now }: ApiDeps): Hono<
   api.route('/', settingsRoutes(db));
   api.route('/', stockRoutes(db, cipher));
   api.route('/', orderRoutes(db, telegram, cipher));
+  api.route('/', ticketRoutes(db, telegram, config.BOT_TOKEN));
   api.route('/', walletRoutes(db, telegram, config.BOT_TOKEN));
 
   return api;

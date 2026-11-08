@@ -93,12 +93,6 @@ describe('main menu', () => {
     expect(text).toContain('تراکنش‌های اخیر');
     expect(text).toContain('➕ ۲۵۰٬۰۰۰ تومان · اصلاحیه');
   });
-
-  it('answers not-yet-built sections with a coming-soon alert', async () => {
-    const t = createTestBot(getDb());
-    await t.pressButton(cb.support);
-    expect(t.callsOf('answerCallbackQuery')[0]?.payload).toMatchObject({ show_alert: true });
-  });
 });
 
 describe('forced join', () => {
