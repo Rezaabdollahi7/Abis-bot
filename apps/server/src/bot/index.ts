@@ -22,7 +22,9 @@ import { topupComposer } from './topup.js';
 export interface BotDeps {
   db: Db;
   cipher: Cipher;
-  config: Pick<Config, 'BOT_TOKEN' | 'CHANNEL_ID' | 'OWNER_TELEGRAM_IDS'>;
+  config: Pick<Config, 'BOT_TOKEN' | 'CHANNEL_ID' | 'OWNER_TELEGRAM_IDS'> & {
+    PUBLIC_URL?: string | undefined;
+  };
   /** Tests inject botInfo so the bot never calls getMe. */
   botConfig?: BotConfig<BotContext>;
 }
@@ -60,7 +62,7 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   // Admin alert buttons and chat admin work regardless of forced join.
   pm.use(topupAlertComposer(db, config.OWNER_TELEGRAM_IDS));
   pm.use(adminOpsComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
-  pm.use(adminMenuComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
+  pm.use(adminMenuComposer(db, cipher, config.OWNER_TELEGRAM_IDS, config.PUBLIC_URL));
 
   // Banned customers keep their wallet but can't use the bot.
   pm.use(async (ctx, next) => {
