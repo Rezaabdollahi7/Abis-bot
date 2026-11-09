@@ -3,6 +3,7 @@ import { Composer, InlineKeyboard, Keyboard } from 'grammy';
 import type { Db } from '../db/client.js';
 import { setPhone } from '../modules/customers/index.js';
 import { getActiveBankCard, getSettings } from '../modules/settings/index.js';
+import { pendingPurchaseVariant } from '../modules/orders/index.js';
 import { createTopup } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb } from './keyboards.js';
@@ -95,7 +96,8 @@ export function topupComposer(db: Db, ownerIds: readonly number[]): Composer<Bot
       receiptFileUniqueId: fileUniqueId,
     });
     ctx.session = {};
-    await ctx.reply(texts.receiptSaved(created.id), {
+    const resumes = (await pendingPurchaseVariant(db, ctx.customer.id)) !== undefined;
+    await ctx.reply(texts.receiptSaved(created.id, resumes), {
       reply_markup: new InlineKeyboard().text(texts.buttons.home, cb.home),
     });
     await alertAdminsOfTopup(ctx.api, db, ownerIds, created);

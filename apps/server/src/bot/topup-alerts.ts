@@ -4,6 +4,7 @@ import type { Db } from '../db/client.js';
 import { listAdminTelegramIds, resolveAdmin } from '../modules/admins/index.js';
 import { getCustomer, namesByTelegramId } from '../modules/customers/index.js';
 import { listNotifications, recordNotifications } from '../modules/notifications/index.js';
+import { pendingPurchaseVariant } from '../modules/orders/index.js';
 import { listBankCards } from '../modules/settings/index.js';
 import {
   type DecisionResult,
@@ -106,6 +107,11 @@ export async function announceTopupDecision(
   const { topup, balance } = result;
   const customer = await getCustomer(db, topup.customerId);
   if (customer) {
+    const resume =
+      topup.status === 'approved' && (await pendingPurchaseVariant(db, customer.id)) !== undefined;
+    const keyboard = new InlineKeyboard();
+    if (resume) keyboard.text(texts.buttons.resumePurchase, 'resume').success().row();
+    keyboard.text(texts.buttons.home, cb.home);
     const text =
       topup.status === 'approved'
         ? texts.topupApproved(
@@ -116,9 +122,9 @@ export async function announceTopupDecision(
           )
         : texts.topupRejected(topup.id, topup.rejectReason ?? '');
     await api
-      .sendMessage(customer.telegramId, text, {
+      .sendMessage(customer.telegramId, resume ? text + texts.resumePurchaseHint : text, {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard().text(texts.buttons.home, cb.home),
+        reply_markup: keyboard,
       })
       .catch((error: unknown) => console.error('Could not notify customer:', error));
   }

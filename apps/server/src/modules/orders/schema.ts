@@ -61,3 +61,20 @@ export const subscriptions = pgTable(
   },
   (table) => [index().on(table.expiresAt)],
 );
+
+/**
+ * A purchase the customer started but could not pay yet (balance too low).
+ * Kept so that after the top-up is approved they can continue where they left off.
+ */
+export const pendingPurchases = pgTable('pending_purchases', {
+  customerId: integer()
+    .primaryKey()
+    .references(() => customers.id),
+  variantId: integer()
+    .notNull()
+    .references(() => variants.id),
+  quantity: integer().notNull(),
+  /** Encrypted JSON of email/password/note already typed. */
+  inputEncrypted: text(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
