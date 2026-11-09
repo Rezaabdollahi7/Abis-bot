@@ -22,7 +22,7 @@ export type Order = typeof orders.$inferSelect;
 export type CustomerInput = Partial<Record<RequiredFieldName, string>>;
 
 /** Most units of a stock-based variant in one order. */
-export const MAX_QUANTITY = 10;
+export const MAX_QUANTITY = 50;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Customer-provided input (passwords) is erased this long after delivery. */
 export const INPUT_RETENTION_DAYS = 7;

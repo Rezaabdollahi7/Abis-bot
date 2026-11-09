@@ -156,7 +156,30 @@ export async function announceOrderDecision(
   }
 }
 
-/** Alerts once, when a sale takes stock from above the threshold to at or below it. */
+/** Lets admins know about every instant (stock) sale, for awareness. */
+export async function alertAdminsOfSale(
+  api: Api,
+  db: Db,
+  ownerIds: readonly number[],
+  result: Purchased,
+): Promise<void> {
+  const customer = await getCustomer(db, result.order.customerId);
+  await broadcastToAdmins(
+    api,
+    db,
+    ownerIds,
+    texts.saleAlert({
+      orderId: result.order.id,
+      productLine: await orderProductLine(db, result.order),
+      quantity: result.order.quantity,
+      total: toman(result.order.totalToman),
+      customerName: customer?.firstName ?? '?',
+      username: customer?.username ?? null,
+    }),
+  );
+}
+
+/** After a sale, alerts while the variant's stock is at or below the threshold. */
 export async function alertIfLowStock(
   api: Api,
   db: Db,
@@ -165,8 +188,7 @@ export async function alertIfLowStock(
 ): Promise<void> {
   if (result.stockLeft === null || result.order.status !== 'delivered') return;
   const { lowStockThreshold } = await getSettings(db);
-  const before = result.stockLeft + result.order.quantity;
-  if (result.stockLeft <= lowStockThreshold && before > lowStockThreshold) {
+  if (result.stockLeft <= lowStockThreshold) {
     await broadcastToAdmins(
       api,
       db,

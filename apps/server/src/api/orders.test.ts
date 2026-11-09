@@ -40,7 +40,7 @@ describe('orders API', () => {
     const list = (await (await adminClient(getDb()).get('/orders')).json()) as OrderDto[];
     expect(list[0]).toMatchObject({
       status: 'queued',
-      productLine: '🟢 ChatGPT Plus · ۱ ماهه',
+      productLine: '🟢 ChatGPT Plus · یک ماهه',
       input: { email: 'sara@mail.com' },
       customer: { firstName: 'Sara' },
     });

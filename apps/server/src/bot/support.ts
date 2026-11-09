@@ -75,6 +75,19 @@ export async function alertAdminsOfTicket(
   await recordNotifications(db, { type: 'ticket', id: ticket.id }, sent);
 }
 
+/** Tells the customer that support closed their ticket. */
+export async function notifyTicketClosed(api: Api, db: Db, ticket: Ticket): Promise<void> {
+  const customer = await getCustomer(db, ticket.customerId);
+  if (!customer) return;
+  await api
+    .sendMessage(customer.telegramId, texts.ticketClosedBySupport(ticket.id), {
+      reply_markup: new InlineKeyboard()
+        .text(texts.buttons.replyTicket, supportCb.reply(ticket.id))
+        .text(texts.buttons.home, cb.home),
+    })
+    .catch((error: unknown) => console.error('Could not notify ticket close:', error));
+}
+
 /** Support: list own tickets, open one (optionally about an order), view, reply, close. */
 export function supportComposer(db: Db, ownerIds: readonly number[]): Composer<BotContext> {
   const support = new Composer<BotContext>();

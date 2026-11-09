@@ -124,7 +124,7 @@ describe('purchase', () => {
     expect(await buy(customer.id, c.chatgpt1m.id, 2, { email: 'me@mail.com' })).toMatchObject({
       reason: 'invalid_quantity',
     });
-    expect(await buy(customer.id, c.gemini12m.id, 11)).toMatchObject({
+    expect(await buy(customer.id, c.gemini12m.id, 51)).toMatchObject({
       reason: 'invalid_quantity',
     });
     expect(await buy(customer.id, c.chatgpt1m.id, 1, { email: 'x' })).toMatchObject({

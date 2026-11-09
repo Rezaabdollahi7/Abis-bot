@@ -75,7 +75,7 @@ describe('main menu', () => {
     await t.pressButton(cb.account);
     const text = String(t.callsOf('editMessageText').at(-1)?.payload.text);
     expect(text).toContain('اشتراک‌های فعال');
-    expect(text).toContain('Gemini Pro · ۱۲ ماهه — تا');
+    expect(text).toContain('Gemini Pro · یک ساله — تا');
   });
 
   it('lists recent transactions on the account screen', async () => {

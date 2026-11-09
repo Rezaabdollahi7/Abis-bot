@@ -29,8 +29,8 @@ describe('shop', () => {
     const screen = lastEdit(t.calls);
     expect(screen.text).toContain('فروشگاه');
     expect(screen.buttons.slice(0, 2)).toEqual(['🟢 OpenAI', '🔵 Google']);
-    expect(screen.buttons).toContain('🔵 Gemini Pro · ۱۲ ماهه · ۱٬۵۰۰٬۰۰۰ تومان (۲)');
-    expect(screen.buttons).toContain('🟢 ChatGPT Plus · ۱ ماهه · ۸۰۰٬۰۰۰ تومان');
+    expect(screen.buttons).toContain('🔵 Gemini Pro · یک ساله · ۱٬۵۰۰٬۰۰۰ تومان (۲)');
+    expect(screen.buttons).toContain('🟢 ChatGPT Plus · یک ماهه · ۸۰۰٬۰۰۰ تومان');
   });
 
   it('says the shop is empty when nothing is for sale', async () => {
@@ -48,8 +48,8 @@ describe('shop', () => {
 
     await t.pressButton(shopCb.product(c.chatgpt.id));
     const durations = lastEdit(t.calls);
-    expect(durations.buttons).toContain('۱ ماهه · ۸۰۰٬۰۰۰ تومان');
-    expect(durations.buttons).toContain('۳ ماهه · ۲٬۲۰۰٬۰۰۰ تومان');
+    expect(durations.buttons).toContain('یک ماهه · ۸۰۰٬۰۰۰ تومان');
+    expect(durations.buttons).toContain('سه ماهه · ۲٬۲۰۰٬۰۰۰ تومان');
     expect(durations.data).toContain(shopCb.provider(c.openai.id));
   });
 

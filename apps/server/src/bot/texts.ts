@@ -21,13 +21,25 @@ export const ticketTopicLabels: Record<TicketTopicName, string> = {
 const ledgerKindLabels: Record<LedgerKind, string> = {
   topup: 'شارژ',
   purchase: 'خرید',
-  refund: 'بازپرداخت',
+  refund: 'برگشت خورده',
   adjustment: 'اصلاحیه',
 };
 
 /** 30 → «۱ ماهه», 360 → «۱۲ ماهه», 7 → «۷ روزه». */
+const monthWords: Record<number, string> = {
+  1: 'یک ماهه',
+  2: 'دو ماهه',
+  3: 'سه ماهه',
+  4: 'چهار ماهه',
+  6: 'شش ماهه',
+  12: 'یک ساله',
+};
+
+/** 30 → «یک ماهه», 90 → «سه ماهه», 360 → «یک ساله»; unusual lengths in digits. */
 export function formatDuration(days: number): string {
-  return days % 30 === 0 ? `${faNumber.format(days / 30)} ماهه` : `${faNumber.format(days)} روزه`;
+  if (days % 30 !== 0) return `${faNumber.format(days)} روزه`;
+  const months = days / 30;
+  return monthWords[months] ?? `${faNumber.format(months)} ماهه`;
 }
 
 const deliveryLabels: Record<DeliveryMethod, string> = {
@@ -142,10 +154,12 @@ export const texts = {
   // ── Purchase ──
   chooseQuantity: (name: string, stock: number) =>
     `🛒 <b>${escapeHtml(name)}</b>\n\nچند عدد می‌خواهید؟ (موجودی: ${faNumber.format(stock)})`,
+  askQuantity: (max: number) => `🔢 تعداد را به عدد بفرستید (حداکثر ${faNumber.format(max)}):`,
+  badQuantity: (max: number) => `❗️ لطفاً عددی بین ۱ و ${faNumber.format(max)} بفرستید:`,
   askField: {
     email: '📧 ایمیل اکانتی که اشتراک باید روی آن فعال شود را بفرستید:',
     password:
-      '🔑 رمز عبور همان اکانت را بفرستید.\n<i>رمز به صورت رمزنگاری‌شده نگهداری و ۷ روز پس از تحویل حذف می‌شود. پیام شما هم بلافاصله پاک می‌شود.</i>',
+      '🔑 برای فعال‌سازی این اشتراک، کارشناس ما باید یک بار وارد اکانت شما شود. لطفاً رمز عبور همان اکانت را بفرستید.\n\n🔒 رمز شما رمزنگاری‌شده نگهداری می‌شود، فقط برای همین فعال‌سازی استفاده می‌شود و ۷ روز پس از تحویل به‌طور کامل حذف می‌شود. پیشنهاد می‌کنیم پس از تحویل، رمز اکانت خود را تغییر دهید.',
     note: '📝 اگر توضیحی برای فعال‌سازی دارید بنویسید (وگرنه «-» بفرستید):',
   } satisfies Record<RequiredFieldName, string>,
   invalidField: {
@@ -207,7 +221,7 @@ export const texts = {
     [
       `✅ <b>سفارش #${faNumber.format(orderId)} تحویل شد</b>`,
       escapeHtml(line),
-      ...(note ? ['', `<pre>${escapeHtml(note)}</pre>`] : []),
+      ...(note ? ['', '<b>پیام ادمین:</b>', escapeHtml(note)] : []),
     ].join('\n'),
   orderRejected: (orderId: number, line: string, reason: string, refund: Toman, balance?: Toman) =>
     [
@@ -271,6 +285,19 @@ export const texts = {
   ticketReplySent: (ticketId: number) =>
     `✅ پاسخ برای مشتری (تیکت #${faNumber.format(ticketId)}) ارسال شد.`,
   adminCancelled: 'لغو شد.',
+  saleAlert: (args: {
+    orderId: number;
+    productLine: string;
+    quantity: number;
+    total: Toman;
+    customerName: string;
+    username: string | null;
+  }) =>
+    `🛍 <b>فروش جدید</b> #${faNumber.format(args.orderId)}\n${escapeHtml(args.customerName)}${args.username ? ` (@${escapeHtml(args.username)})` : ''} خرید: ${escapeHtml(args.productLine)}${args.quantity > 1 ? ` × ${faNumber.format(args.quantity)}` : ''}\n💰 ${formatToman(args.total)} · ⚡ تحویل خودکار`,
+  ticketClosedBySupport: (id: number) =>
+    `🔒 تیکت #${faNumber.format(id)} توسط پشتیبانی بسته شد. اگر سؤال دیگری دارید، از بخش پشتیبانی تیکت جدید بزنید یا به همین تیکت پاسخ دهید.`,
+  fallback:
+    '🤔 متوجه پیام شما نشدم. لطفاً از دکمه‌های زیر استفاده کنید. اگر سؤالی دارید، از بخش «🎧 پشتیبانی» تیکت بزنید.',
   lowStockAlert: (productLine: string, left: number) =>
     `⚠️ <b>موجودی رو به اتمام</b>\n${escapeHtml(productLine)}\nباقی‌مانده: ${faNumber.format(left)}`,
 
@@ -414,7 +441,8 @@ export const texts = {
     `❌ <b>رد شد</b> توسط ${escapeHtml(admin)} — ${escapeHtml(reason)}`,
   alreadyHandled: 'این درخواست قبلاً بررسی شده است.',
   notAdmin: 'شما دسترسی ادمین ندارید.',
-  banned: '🚫 حساب شما مسدود شده است. موجودی کیف پول شما محفوظ است.',
+  banned:
+    '🚫 حساب شما مسدود شده است. موجودی کیف پول شما محفوظ است.\nبرای پیگیری می‌توانید از دکمه‌ی زیر با پشتیبانی در ارتباط باشید.',
   directMessage: (text: string) => `📬 <b>پیام از پشتیبانی</b>\n\n${escapeHtml(text)}`,
 
   joinRequired: (channelUrl: string) =>
@@ -447,6 +475,8 @@ export const texts = {
     pay: (total: Toman) => `✅ پرداخت ${formatToman(total)} و خرید`,
     topupShortfall: (shortfall: Toman) => `💳 شارژ ${formatToman(shortfall)}`,
     quantity: (n: number) => faNumber.format(n),
+    moreQuantity: '🔢 تعداد بیشتر',
+    contactSupport: '🎧 تماس با پشتیبانی',
     renew: '🔁 تمدید',
     deliver: '📦 تحویل',
     rejectRefund: '❌ رد و بازپرداخت',
@@ -489,7 +519,10 @@ export const adminTexts = {
     [
       '🛠 <b>مدیریت فروشگاه</b>',
       '',
-      `امروز: 🛒 ${formatToman(args.salesToday)} (${faNumber.format(args.salesCountToday)} سفارش) · 💳 ${formatToman(args.topupsToday)} · 👤 ${faNumber.format(args.newCustomersToday)} کاربر جدید`,
+      '<b>امروز</b> (از نیمه‌شب به وقت تهران):',
+      `🛒 فروش: ${formatToman(args.salesToday)} — ${faNumber.format(args.salesCountToday)} سفارش`,
+      `💳 شارژ تأییدشده: ${formatToman(args.topupsToday)}`,
+      `👤 کاربران تازه‌عضو: ${faNumber.format(args.newCustomersToday)}`,
       '',
       args.pendingTopups + args.queuedOrders + args.openTickets === 0
         ? '✅ کار در انتظاری نیست.'
