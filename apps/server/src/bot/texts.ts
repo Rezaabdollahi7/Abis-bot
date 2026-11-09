@@ -319,8 +319,10 @@ export const texts = {
       ? '🎧 <b>پشتیبانی</b>\n\nتیکت‌های باز شما در زیر هستند. برای مشاهده یا پاسخ، روی هر کدام بزنید:'
       : '🎧 <b>پشتیبانی</b>\n\nسؤال یا مشکلی دارید؟ یک تیکت جدید باز کنید؛ پاسخ همین‌جا برایتان ارسال می‌شود.',
   ticketButton: (id: number, topic: TicketTopicName, status: TicketStatusName) =>
-    `${status === 'awaiting_customer' ? '📩' : '⏳'} #${faNumber.format(id)} · ${ticketTopicLabels[topic]}`,
+    `${status === 'awaiting_customer' ? '📩' : status === 'closed' ? '🔒' : '⏳'} #${faNumber.format(id)} · ${ticketTopicLabels[topic]}`,
   chooseTopic: 'موضوع تیکت را انتخاب کنید:',
+  closedTicketsTitle: (count: number) =>
+    count > 0 ? '🗂 تیکت‌های بسته‌ی شما:' : '🗂 تیکت بسته‌ای ندارید.',
   chooseOrder: 'تیکت درباره‌ی کدام سفارش است؟',
   orderButton: (id: number, line: string) => `#${faNumber.format(id)} · ${line}`,
   writeTicket:
@@ -543,6 +545,7 @@ export const texts = {
     showPassword: '🔑 نمایش رمز',
     closeTicketAdmin: '🔒 بستن تیکت',
     newTicket: '➕ تیکت جدید',
+    closedTickets: '🗂 تیکت‌های بسته',
     replyTicket: '✍️ پاسخ',
     closeTicket: '🔒 بستن تیکت',
     noOrder: 'مربوط به سفارش خاصی نیست',
@@ -612,6 +615,12 @@ export const adminTexts = {
     toggleFeatured: (featured: boolean) => (featured ? '⭐ حذف از ویژه' : '⭐ ویژه کردن'),
     addCard: '➕ کارت جدید',
     webPanel: '🌐 پنل وب (ساخت محصول و…)',
+    history: '📜 تاریخچه',
+    historyOrders: '🛒 سفارش‌ها',
+    historyTopups: '💳 واریزها',
+    historyTickets: '🎧 همه‌ی تیکت‌ها',
+    historyStats: '📊 آمار ۷ و ۳۰ روز',
+    customerCard: '👤 کارت مشتری',
     openPanel: '🌐 باز کردن پنل',
     toggle: (label: string, on: boolean) => `${on ? '✅' : '⬜️'} ${label}`,
     edit: (label: string, value: string) => `✏️ ${label}: ${value}`,
@@ -704,6 +713,100 @@ export const adminTexts = {
   settingSaved: '✅ ذخیره شد.',
   failed: (message: string) => `❗️ ${message}`,
   cancelled: 'لغو شد.',
+  historyTitle: '📜 <b>تاریخچه</b> — همه‌ی موارد، نه فقط در انتظار:',
+  historyOrdersTitle: '🛒 آخرین سفارش‌ها (همه‌ی وضعیت‌ها):',
+  historyTicketsTitle: '🎧 آخرین تیکت‌ها (همه‌ی وضعیت‌ها):',
+  orderLine: (
+    status: 'queued' | 'delivered' | 'rejected',
+    id: number,
+    line: string,
+    name: string,
+  ) =>
+    `${{ queued: '⏳', delivered: '✅', rejected: '↩️' }[status]} #${faNumber.format(id)} · ${line} · ${name}`,
+  ticketLine: (
+    status: 'awaiting_admin' | 'awaiting_customer' | 'closed',
+    id: number,
+    name: string,
+  ) =>
+    `${{ awaiting_admin: '⏳', awaiting_customer: '📩', closed: '🔒' }[status]} #${faNumber.format(id)} · ${name}`,
+  topupsHistory: (
+    rows: {
+      id: number;
+      status: 'pending' | 'approved' | 'rejected';
+      amount: Toman;
+      name: string;
+      at: Date;
+    }[],
+  ) =>
+    rows.length === 0
+      ? '💳 واریزی ثبت نشده.'
+      : [
+          '💳 <b>آخرین واریزها</b>',
+          '',
+          ...rows.map(
+            (r) =>
+              `${{ pending: '⏳', approved: '✅', rejected: '❌' }[r.status]} #${faNumber.format(r.id)} · ${formatToman(r.amount)} · ${escapeHtml(r.name)} · ${shortDate.format(r.at)}`,
+          ),
+        ].join('\n'),
+  adminOrderDetail: (args: {
+    id: number;
+    line: string;
+    quantity: number;
+    total: Toman;
+    status: 'queued' | 'delivered' | 'rejected';
+    customer: string;
+    createdAt: Date;
+    email: string | null;
+    note: string | null;
+    itemsCount: number;
+    rejectReason: string | null;
+    handledBy: string | null;
+  }) =>
+    [
+      `🧾 <b>سفارش #${faNumber.format(args.id)}</b> — ${{ queued: '⏳ در صف', delivered: '✅ تحویل شده', rejected: '↩️ رد و برگشت' }[args.status]}`,
+      `${escapeHtml(args.line)}${args.quantity > 1 ? ` × ${faNumber.format(args.quantity)}` : ''}`,
+      `💰 ${formatToman(args.total)} · 📅 ${shortDate.format(args.createdAt)}`,
+      `👤 ${escapeHtml(args.customer)}`,
+      ...(args.email ? [`📧 <code>${escapeHtml(args.email)}</code>`] : []),
+      ...(args.itemsCount ? [`📦 ${faNumber.format(args.itemsCount)} آیتم از انبار تحویل شد`] : []),
+      ...(args.note ? ['', '<b>پیام تحویل:</b>', escapeHtml(args.note)] : []),
+      ...(args.rejectReason ? [`دلیل رد: ${escapeHtml(args.rejectReason)}`] : []),
+      ...(args.handledBy ? [`توسط: ${escapeHtml(args.handledBy)}`] : []),
+    ].join('\n'),
+  ticketThread: (
+    id: number,
+    topic: string,
+    customer: string,
+    status: string,
+    messages: { fromAdmin: string | null; text: string | null; hasFile: boolean; at: Date }[],
+  ) =>
+    [
+      `🎫 <b>تیکت #${faNumber.format(id)}</b> · ${topic} · ${escapeHtml(customer)} · ${status}`,
+      '',
+      ...messages
+        .slice(-12)
+        .map(
+          (m) =>
+            `${m.fromAdmin ? `🎧 <b>${escapeHtml(m.fromAdmin)}:</b>` : '👤 <b>مشتری:</b>'} ${m.text ? escapeHtml(m.text) : ''}${m.hasFile ? ' 📎' : ''}`,
+        ),
+      '',
+      '↩️ برای پاسخ، روی همین پیام Reply بزنید.',
+    ].join('\n'),
+  stats: (
+    week: { sales: Toman; orders: number; topups: Toman; customers: number },
+    month: { sales: Toman; orders: number; topups: Toman; customers: number },
+  ) =>
+    [
+      '📊 <b>آمار</b>',
+      '',
+      '<b>۷ روز اخیر</b>',
+      `🛒 ${formatToman(week.sales)} — ${faNumber.format(week.orders)} سفارش`,
+      `💳 شارژ: ${formatToman(week.topups)} · 👤 تازه‌عضو: ${faNumber.format(week.customers)}`,
+      '',
+      '<b>۳۰ روز اخیر</b>',
+      `🛒 ${formatToman(month.sales)} — ${faNumber.format(month.orders)} سفارش`,
+      `💳 شارژ: ${formatToman(month.topups)} · 👤 تازه‌عضو: ${faNumber.format(month.customers)}`,
+    ].join('\n'),
   panelLink:
     '🌐 لینک ورود به پنل وب (یک‌بارمصرف، ۱۰ دقیقه اعتبار). در مرورگر گوشی یا کامپیوتر باز کنید؛ ورود ۱۲ ساعت معتبر می‌ماند.\n<i>این لینک را برای کسی نفرستید.</i>',
   noPublicUrl:

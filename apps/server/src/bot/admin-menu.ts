@@ -114,6 +114,7 @@ export function adminMenuComposer(
       .text(t.buttons.cards, 'am:cards')
       .text(t.buttons.settings, 'am:set')
       .row()
+      .text(t.buttons.history, 'ah:menu')
       .text(t.buttons.webPanel, 'am:web');
     await show(
       ctx,

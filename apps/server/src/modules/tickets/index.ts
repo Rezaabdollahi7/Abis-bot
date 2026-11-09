@@ -176,3 +176,22 @@ export async function countTicketsAwaitingAdmin(db: Db): Promise<number> {
     .where(eq(tickets.status, 'awaiting_admin'));
   return row?.n ?? 0;
 }
+
+/** A customer's closed tickets, most recent first. */
+export async function listCustomerClosedTickets(
+  db: Db,
+  customerId: number,
+  limit = 10,
+): Promise<Ticket[]> {
+  return db
+    .select()
+    .from(tickets)
+    .where(and(eq(tickets.customerId, customerId), eq(tickets.status, 'closed')))
+    .orderBy(desc(tickets.updatedAt))
+    .limit(limit);
+}
+
+/** Every ticket regardless of status, most recent activity first (admin history). */
+export async function listRecentTickets(db: Db, limit: number): Promise<Ticket[]> {
+  return db.select().from(tickets).orderBy(desc(tickets.updatedAt)).limit(limit);
+}

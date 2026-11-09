@@ -9,6 +9,7 @@ import {
   addCustomerMessage,
   closeTicket,
   getTicket,
+  listCustomerClosedTickets,
   listCustomerTickets,
   listMessages,
   openTicket,
@@ -104,10 +105,24 @@ export function supportComposer(db: Db, ownerIds: readonly number[]): Composer<B
       .text(texts.buttons.newTicket, supportCb.newTicket)
       .primary()
       .row()
+      .text(texts.buttons.closedTickets, 'tk:closed')
+      .row()
       .text(texts.buttons.home, cb.home);
     await ctx.editMessageText(texts.supportHome(open.length), {
       parse_mode: 'HTML',
       reply_markup: keyboard,
+    });
+  });
+
+  support.callbackQuery('tk:closed', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const closed = await listCustomerClosedTickets(db, ctx.customer.id);
+    const keyboard = new InlineKeyboard();
+    for (const t of closed) {
+      keyboard.text(texts.ticketButton(t.id, t.topic, t.status), supportCb.view(t.id)).row();
+    }
+    await ctx.editMessageText(texts.closedTicketsTitle(closed.length), {
+      reply_markup: keyboard.append(backHome()),
     });
   });
 
