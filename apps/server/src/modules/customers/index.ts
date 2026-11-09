@@ -1,4 +1,5 @@
 import { desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
+import { normalizeDigits } from '@abis/shared';
 import type { Db, Executor } from '../../db/client.js';
 import { recordAudit } from '../audit/index.js';
 import { customers } from './schema.js';
@@ -80,8 +81,14 @@ export async function getCustomersByIds(db: Db, ids: number[]): Promise<Map<numb
 
 /** Most recently seen first; `query` matches name, username, phone or Telegram id. */
 export async function searchCustomers(db: Db, query: string, limit: number): Promise<Customer[]> {
-  const q = query.trim().replace(/^@/, '');
-  const pattern = `%${q}%`;
+  const raw = query.trim().replace(/^@/, '');
+  // Phones are stored as Telegram gives them (98912…); "0912…", "+98912…" or a fragment
+  // in Persian digits should all match.
+  const digits = normalizeDigits(raw).replace(/^\+/, '');
+  const isNumeric = /^\d+$/.test(digits);
+  const phoneFragment = isNumeric ? digits.replace(/^0/, '') : raw;
+  const q = isNumeric ? digits : raw;
+  const pattern = `%${raw}%`;
   return db
     .select()
     .from(customers)
@@ -91,7 +98,7 @@ export async function searchCustomers(db: Db, query: string, limit: number): Pro
             ilike(customers.firstName, pattern),
             ilike(customers.lastName, pattern),
             ilike(customers.username, pattern),
-            ilike(customers.phone, pattern),
+            ilike(customers.phone, `%${phoneFragment}%`),
             sql`${customers.telegramId}::text = ${q}`,
           )
         : undefined,

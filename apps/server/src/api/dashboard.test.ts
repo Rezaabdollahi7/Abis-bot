@@ -62,7 +62,7 @@ describe('dashboard API', () => {
     expect(d.month.newCustomers).toBe(1);
     expect(d.pending).toEqual({ topups: 1, orders: 0, tickets: 0 });
     expect(d.lowStock).toEqual([
-      { variantId: c.gemini12m.id, line: '🔵 Gemini Pro · ۱۲ ماهه', stock: 1 },
+      { variantId: c.gemini12m.id, line: '🔵 Gemini Pro · یک ساله', stock: 1 },
     ]);
   });
 });

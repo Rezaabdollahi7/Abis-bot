@@ -9,7 +9,7 @@ import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 import { cb } from '../bot/keyboards.js';
 import { orderProductLine } from '../bot/order-alerts.js';
-import { supportCb } from '../bot/support.js';
+import { notifyTicketClosed, supportCb } from '../bot/support.js';
 import { texts } from '../bot/texts.js';
 import type { Db } from '../db/client.js';
 import { getCustomer, getCustomersByIds, namesByTelegramId } from '../modules/customers/index.js';
@@ -75,6 +75,7 @@ export function ticketRoutes(db: Db, telegram: Api, botToken: string): Hono<ApiE
   routes.post('/tickets/:id{[0-9]+}/close', async (c) => {
     const ticket = await closeTicket(db, { ticketId: id(c), actor: c.get('admin').telegramId });
     if (!ticket) return c.json<ApiError>({ error: 'not_found' }, 404);
+    await notifyTicketClosed(telegram, db, ticket);
     return c.json(await toDetail(db, ticket));
   });
 

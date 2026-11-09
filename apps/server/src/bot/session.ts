@@ -11,6 +11,7 @@ export interface SessionData {
     | 'amount'
     | 'receipt'
     | 'order_input'
+    | 'quantity_input'
     | 'ticket_new'
     | 'ticket_reply'
     | 'admin_deliver'

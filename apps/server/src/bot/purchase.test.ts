@@ -119,7 +119,7 @@ describe('buying an email-activation product', () => {
     expect(alert).toContain('me@mail.com');
   });
 
-  it('deletes the password message and never shows the password in alerts', async () => {
+  it('keeps the password out of the pre-invoice and admin alerts', async () => {
     const c = await seedTestCatalog(getDb());
     await fund(5_000_000);
     const product = await createProduct(getDb(), {
@@ -137,7 +137,7 @@ describe('buying an email-activation product', () => {
     await t.pressButton(shopCb.buy(variant.id));
     await t.sendText('me@mail.com');
     await t.sendText('S3cret!pass');
-    expect(t.callsOf('deleteMessage')).toHaveLength(1);
+    expect(t.callsOf('deleteMessage')).toHaveLength(0);
     expect(lastText(t)).toContain('••••••');
     await pressPay(t);
     expect(t.sentTo(OWNER).join('\n')).not.toContain('S3cret!pass');

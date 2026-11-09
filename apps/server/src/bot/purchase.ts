@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { type RequiredFieldName, toman } from '@abis/shared';
+import { type RequiredFieldName, normalizeDigits, toman } from '@abis/shared';
 import { Composer, InlineKeyboard } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
@@ -8,11 +8,12 @@ import { MAX_QUANTITY, purchase, validateInput } from '../modules/orders/index.j
 import { getBalance } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, shopCb, shopCbPattern } from './keyboards.js';
-import { alertAdminsOfQueuedOrder, alertIfLowStock } from './order-alerts.js';
+import { alertAdminsOfQueuedOrder, alertAdminsOfSale, alertIfLowStock } from './order-alerts.js';
 import type { SessionData } from './session.js';
 import { texts } from './texts.js';
 
-const QUANTITY_OPTIONS = [1, 2, 3, 5, 10];
+/** Most customers buy one; bigger numbers are typed after «تعداد بیشتر». */
+const QUANTITY_BUTTONS = [1, 2, 3];
 export const purchaseCb = {
   quantity: (variantId: number, n: number) => `qty:${variantId}:${n}`,
   pay: (key: string) => `pay:${key}`,
@@ -40,9 +41,12 @@ export function purchaseComposer(
       const max = Math.min(view.stock ?? 0, MAX_QUANTITY);
       if (max <= 1) return confirm(ctx, { variantId: view.variant.id, quantity: 1, values: {} });
       const keyboard = new InlineKeyboard();
-      QUANTITY_OPTIONS.filter((n) => n <= max).forEach((n) =>
+      QUANTITY_BUTTONS.filter((n) => n <= max).forEach((n) =>
         keyboard.text(texts.buttons.quantity(n), purchaseCb.quantity(view.variant.id, n)),
       );
+      if (max > QUANTITY_BUTTONS.length) {
+        keyboard.row().text(texts.buttons.moreQuantity, `qmore:${view.variant.id}`);
+      }
       keyboard
         .row()
         .text(texts.buttons.back, shopCb.variant(view.variant.id))
@@ -55,6 +59,37 @@ export function purchaseComposer(
 
     const draft: Draft = { variantId: view.variant.id, quantity: 1, values: {} };
     return askNextField(ctx, draft, view.product.requiredFields);
+  });
+
+  composer.callbackQuery(/^qmore:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const view = await getVariantView(db, Number(ctx.match[1]));
+    if (!view) return ctx.reply(texts.notAvailable);
+    const max = Math.min(view.stock ?? 0, MAX_QUANTITY);
+    ctx.session = {
+      step: 'quantity_input',
+      order: { variantId: view.variant.id, quantity: 1, values: {} },
+    };
+    await ctx.reply(texts.askQuantity(max), {
+      reply_markup: new InlineKeyboard().text(texts.buttons.cancel, cb.home),
+    });
+  });
+
+  composer.on('message:text', async (ctx, next) => {
+    const draft = ctx.session.order;
+    if (ctx.session.step !== 'quantity_input' || !draft || ctx.message.text.startsWith('/')) {
+      return next();
+    }
+    const view = await getVariantView(db, draft.variantId);
+    if (!view) {
+      ctx.session = {};
+      return ctx.reply(texts.notAvailable);
+    }
+    const max = Math.min(view.stock ?? 0, MAX_QUANTITY);
+    const digits = normalizeDigits(ctx.message.text);
+    const quantity = /^\d{1,4}$/.test(digits) ? Number(digits) : 0;
+    if (quantity < 1 || quantity > max) return ctx.reply(texts.badQuantity(max));
+    await confirm(ctx, { variantId: draft.variantId, quantity, values: {} });
   });
 
   composer.callbackQuery(/^qty:(\d+):(\d+)$/, async (ctx) => {
@@ -90,10 +125,6 @@ export function purchaseComposer(
     if (!field) return confirm(ctx, draft);
 
     const value = ctx.message.text.trim();
-    if (field === 'password') {
-      // Do not leave the password sitting in the chat history.
-      await ctx.deleteMessage().catch(() => undefined);
-    }
     if (validateInput([field], { [field]: value })) {
       return ctx.reply(texts.invalidField[field]);
     }
@@ -184,6 +215,7 @@ export function purchaseComposer(
         parse_mode: 'HTML',
         reply_markup: home,
       });
+      await alertAdminsOfSale(ctx.api, db, ownerIds, result);
       await alertIfLowStock(ctx.api, db, ownerIds, result);
     } else {
       await ctx.editMessageText(

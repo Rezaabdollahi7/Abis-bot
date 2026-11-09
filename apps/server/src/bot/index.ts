@@ -1,4 +1,11 @@
-import { Bot, type BotConfig, GrammyError, type Transformer, session } from 'grammy';
+import {
+  Bot,
+  type BotConfig,
+  GrammyError,
+  InlineKeyboard,
+  type Transformer,
+  session,
+} from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import type { Config } from '../lib/config.js';
@@ -64,13 +71,22 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   pm.use(adminOpsComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(adminMenuComposer(db, cipher, config.OWNER_TELEGRAM_IDS, config.PUBLIC_URL));
 
-  // Banned customers keep their wallet but can't use the bot.
+  // Banned customers keep their wallet and can still reach support, nothing else.
   pm.use(async (ctx, next) => {
     if (!ctx.customer.isBanned) return next();
+    const data = ctx.callbackQuery?.data ?? '';
+    const step = ctx.session.step;
+    const supportOnly =
+      data === cb.support ||
+      data.startsWith('tk:') ||
+      ((step === 'ticket_new' || step === 'ticket_reply') && !ctx.message?.text?.startsWith('/'));
+    if (supportOnly) return next();
+    const keyboard = new InlineKeyboard().text(texts.buttons.contactSupport, cb.support);
     if (ctx.callbackQuery) {
       await ctx.answerCallbackQuery({ text: texts.banned, show_alert: true });
     } else {
-      await ctx.reply(texts.banned);
+      ctx.session = {};
+      await ctx.reply(texts.banned, { reply_markup: keyboard });
     }
   });
 
@@ -134,6 +150,11 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   pm.use(purchaseComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(topupComposer(db, config.OWNER_TELEGRAM_IDS));
   pm.use(supportComposer(db, config.OWNER_TELEGRAM_IDS));
+
+  // Anything no handler took: say so, and show the way back, so the bot never looks dead.
+  pm.on('message', async (ctx) => {
+    await ctx.reply(texts.fallback, { reply_markup: mainMenu(channelLink) });
+  });
 
   bot.catch((err) => {
     console.error(`Error while handling update ${err.ctx.update.update_id}:`, err.error);

@@ -15,7 +15,7 @@ import { addAdminReply, closeTicket } from '../modules/tickets/index.js';
 import type { BotContext } from './context.js';
 import { cb } from './keyboards.js';
 import { announceOrderDecision, orderAlertKeyboard } from './order-alerts.js';
-import { supportCb } from './support.js';
+import { notifyTicketClosed, supportCb } from './support.js';
 import { orderRejectReasons, texts } from './texts.js';
 
 /**
@@ -98,7 +98,9 @@ export function adminOpsComposer(
   admin.callbackQuery(/^tk:ac:(\d+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     const ticket = await closeTicket(db, { ticketId: Number(ctx.match[1]), actor: ctx.from.id });
-    if (ticket) await ctx.reply(texts.ticketClosed(ticket.id));
+    if (!ticket) return;
+    await notifyTicketClosed(ctx.api, db, ticket);
+    await ctx.reply(texts.ticketClosed(ticket.id));
   });
 
   admin.command('cancel', async (ctx, next) => {

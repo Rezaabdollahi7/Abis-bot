@@ -14,7 +14,7 @@ import { useLoad } from '../useLoad';
 const kindLabels: Record<LedgerKind, string> = {
   topup: 'شارژ',
   purchase: 'خرید',
-  refund: 'بازپرداخت',
+  refund: 'برگشت خورده',
   adjustment: 'اصلاحیه',
 };
 
