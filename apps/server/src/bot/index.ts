@@ -13,6 +13,7 @@ import { registerCustomer } from '../modules/customers/index.js';
 import { listActiveSubscriptions } from '../modules/orders/index.js';
 import { getSettings } from '../modules/settings/index.js';
 import { getBalance, listLedger } from '../modules/wallet/index.js';
+import { adminHistoryComposer } from './admin-history.js';
 import { adminMenuComposer } from './admin-menu.js';
 import { adminOpsComposer } from './admin-ops.js';
 import type { BotContext } from './context.js';
@@ -71,6 +72,7 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   pm.use(topupAlertComposer(db, config.OWNER_TELEGRAM_IDS));
   pm.use(adminOpsComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(adminMenuComposer(db, cipher, config.OWNER_TELEGRAM_IDS, config.PUBLIC_URL));
+  pm.use(adminHistoryComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
 
   // Banned customers keep their wallet and can still reach support, nothing else.
   pm.use(async (ctx, next) => {

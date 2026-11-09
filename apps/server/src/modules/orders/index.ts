@@ -581,3 +581,8 @@ export async function getCustomerOrder(
     .where(and(eq(orders.id, orderId), eq(orders.customerId, customerId)));
   return row ? { order: row.order, subscription: row.subscription ?? undefined } : undefined;
 }
+
+/** Every order regardless of status, newest first (admin history). */
+export async function listRecentOrders(db: Db, limit: number): Promise<Order[]> {
+  return db.select().from(orders).orderBy(desc(orders.id)).limit(limit);
+}

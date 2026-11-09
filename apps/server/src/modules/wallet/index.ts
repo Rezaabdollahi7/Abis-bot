@@ -258,3 +258,8 @@ export async function countPendingTopups(db: Db): Promise<number> {
     .where(eq(topups.status, 'pending'));
   return row?.n ?? 0;
 }
+
+/** Every top-up regardless of status, newest first (admin history). */
+export async function listRecentTopups(db: Db, limit: number): Promise<Topup[]> {
+  return db.select().from(topups).orderBy(desc(topups.id)).limit(limit);
+}
