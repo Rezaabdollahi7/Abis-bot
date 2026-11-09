@@ -4,7 +4,14 @@ import { Composer, InlineKeyboard } from 'grammy';
 import type { Db } from '../db/client.js';
 import type { Cipher } from '../lib/cipher.js';
 import { getVariantView, usesStock } from '../modules/catalog/index.js';
-import { MAX_QUANTITY, purchase, validateInput } from '../modules/orders/index.js';
+import {
+  MAX_QUANTITY,
+  clearPendingPurchase,
+  getPendingPurchase,
+  purchase,
+  savePendingPurchase,
+  validateInput,
+} from '../modules/orders/index.js';
 import { getBalance } from '../modules/wallet/index.js';
 import type { BotContext } from './context.js';
 import { cb, shopCb, shopCbPattern } from './keyboards.js';
@@ -59,6 +66,17 @@ export function purchaseComposer(
 
     const draft: Draft = { variantId: view.variant.id, quantity: 1, values: {} };
     return askNextField(ctx, draft, view.product.requiredFields);
+  });
+
+  composer.callbackQuery('resume', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const pending = await getPendingPurchase(db, cipher, ctx.customer.id);
+    if (!pending) return ctx.reply(texts.confirmExpired);
+    await confirm(ctx, {
+      variantId: pending.variantId,
+      quantity: pending.quantity,
+      values: pending.input,
+    });
   });
 
   composer.callbackQuery(/^qmore:(\d+)$/, async (ctx) => {
@@ -146,6 +164,14 @@ export function purchaseComposer(
     const key = randomUUID().slice(0, 12);
     ctx.session = { order: { ...draft, key } };
 
+    if (balance < total) {
+      // Remember the cart so the customer can continue right after the top-up is approved.
+      await savePendingPurchase(db, cipher, ctx.customer.id, {
+        variantId: draft.variantId,
+        quantity: draft.quantity,
+        input: draft.values,
+      });
+    }
     const keyboard = new InlineKeyboard();
     if (balance >= total) {
       keyboard.text(texts.buttons.pay(total), purchaseCb.pay(key)).success();
@@ -205,6 +231,7 @@ export function purchaseComposer(
     }
 
     await ctx.answerCallbackQuery();
+    await clearPendingPurchase(db, ctx.customer.id);
     const home = new InlineKeyboard().text(texts.buttons.home, cb.home);
     const name = `${result.product.name}`;
     if (result.order.status === 'delivered') {

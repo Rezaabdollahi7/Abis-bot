@@ -10,6 +10,18 @@ const jalaliDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'l
 const faNumber = new Intl.NumberFormat('fa-IR');
 const shortDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'short', day: 'numeric' });
 
+type OrderStatusName = 'queued' | 'delivered' | 'rejected';
+const orderStatusIcons: Record<OrderStatusName, string> = {
+  queued: '⏳',
+  delivered: '✅',
+  rejected: '↩️',
+};
+const orderStatusLabels: Record<OrderStatusName, string> = {
+  queued: 'در صف تحویل',
+  delivered: 'تحویل شده',
+  rejected: 'انجام نشد — برگشت خورده',
+};
+
 type TicketTopicName = 'order' | 'payment' | 'general';
 type TicketStatusName = 'awaiting_admin' | 'awaiting_customer' | 'closed';
 export const ticketTopicLabels: Record<TicketTopicName, string> = {
@@ -354,6 +366,50 @@ export const texts = {
       '↩️ برای پاسخ، روی همین پیام Reply بزنید.',
     ].join('\n'),
 
+  // ── My purchases ──
+  myOrdersTitle: (count: number) =>
+    count > 0
+      ? '📦 <b>خریدهای من</b>\n\nبرای دیدن جزئیات و اطلاعات تحویل، روی هر سفارش بزنید:'
+      : '📦 هنوز خریدی نداشته‌اید.',
+  myOrderButton: (id: number, line: string, status: OrderStatusName) =>
+    `${orderStatusIcons[status]} #${faNumber.format(id)} · ${line}`,
+  myOrderDetail: (args: {
+    id: number;
+    line: string;
+    quantity: number;
+    total: Toman;
+    status: OrderStatusName;
+    createdAt: Date;
+    expiresAt: Date | null;
+    items: string[];
+    note: string | null;
+    rejectReason: string | null;
+  }) =>
+    [
+      `🧾 <b>سفارش #${faNumber.format(args.id)}</b>`,
+      `${escapeHtml(args.line)}${args.quantity > 1 ? ` × ${faNumber.format(args.quantity)}` : ''}`,
+      `💰 ${formatToman(args.total)} · 📅 ${shortDate.format(args.createdAt)}`,
+      `وضعیت: ${orderStatusIcons[args.status]} ${orderStatusLabels[args.status]}`,
+      ...(args.expiresAt
+        ? [
+            args.expiresAt > new Date()
+              ? `⏳ اعتبار تا ${shortDate.format(args.expiresAt)}`
+              : `⌛️ منقضی شده (${shortDate.format(args.expiresAt)})`,
+          ]
+        : []),
+      ...(args.items.length > 0
+        ? [
+            '',
+            '<b>اطلاعات تحویل:</b>',
+            ...args.items.map((item) => `<pre>${escapeHtml(item)}</pre>`),
+          ]
+        : []),
+      ...(args.note ? ['', '<b>پیام ادمین:</b>', escapeHtml(args.note)] : []),
+      ...(args.rejectReason
+        ? ['', `دلیل: ${escapeHtml(args.rejectReason)} (مبلغ به کیف پول برگشت داده شد)`]
+        : []),
+    ].join('\n'),
+
   // ── Top-up (customer) ──
   topupUnavailable: '💳 شارژ کیف پول موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.',
   askPhone:
@@ -378,8 +434,9 @@ export const texts = {
       '📸 سپس <b>اسکرین‌شات رسید</b> را همین‌جا بفرستید.',
     ].join('\n'),
   receiptExpected: '📸 لطفاً تصویر رسید واریز را بفرستید، یا «انصراف» را بزنید.',
-  receiptSaved: (topupId: number) =>
-    `✅ رسید شما ثبت شد (درخواست #${faNumber.format(topupId)}).\nپس از بررسی توسط پشتیبانی، نتیجه همین‌جا اعلام می‌شود.`,
+  receiptSaved: (topupId: number, resumesPurchase: boolean) =>
+    `✅ رسید شما ثبت شد (درخواست #${faNumber.format(topupId)}).\nپس از بررسی توسط پشتیبانی، نتیجه همین‌جا اعلام می‌شود.${resumesPurchase ? '\n🛒 بعد از تأیید، با یک دکمه خریدتان را ادامه می‌دهید.' : ''}`,
+  resumePurchaseHint: '\n🛒 خرید نیمه‌کاره‌ی شما آماده است؛ برای ادامه دکمه‌ی زیر را بزنید.',
   topupApproved: (topupId: number, amount: Toman, claimed: Toman, balance: Toman) =>
     [
       `✅ شارژ #${faNumber.format(topupId)} تأیید شد.`,
@@ -478,6 +535,9 @@ export const texts = {
     moreQuantity: '🔢 تعداد بیشتر',
     contactSupport: '🎧 تماس با پشتیبانی',
     renew: '🔁 تمدید',
+    resumePurchase: '🛒 ادامه‌ی خرید',
+    myOrders: '📦 خریدهای من',
+    orderSupport: '🎧 پشتیبانی این سفارش',
     deliver: '📦 تحویل',
     rejectRefund: '❌ رد و بازپرداخت',
     showPassword: '🔑 نمایش رمز',

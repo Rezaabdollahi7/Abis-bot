@@ -16,10 +16,11 @@ import { getBalance, listLedger } from '../modules/wallet/index.js';
 import { adminMenuComposer } from './admin-menu.js';
 import { adminOpsComposer } from './admin-ops.js';
 import type { BotContext } from './context.js';
-import { cb, channelUrl, homeOnly, joinChannel, mainMenu } from './keyboards.js';
+import { cb, channelUrl, joinChannel, mainMenu } from './keyboards.js';
 import { sessionStorage } from './session.js';
 import { purchaseComposer } from './purchase.js';
 import { orderProductLine } from './order-alerts.js';
+import { myOrdersCb, myOrdersComposer } from './my-orders.js';
 import { shopComposer } from './shop.js';
 import { supportComposer } from './support.js';
 import { texts } from './texts.js';
@@ -142,7 +143,14 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
           })),
         ),
       }),
-      { parse_mode: 'HTML', reply_markup: homeOnly() },
+      {
+        parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard()
+          .text(texts.buttons.myOrders, myOrdersCb.list)
+          .primary()
+          .row()
+          .text(texts.buttons.home, cb.home),
+      },
     );
   });
 
@@ -150,6 +158,7 @@ export function createBot({ db, cipher, config, botConfig }: BotDeps): Bot<BotCo
   pm.use(purchaseComposer(db, cipher, config.OWNER_TELEGRAM_IDS));
   pm.use(topupComposer(db, config.OWNER_TELEGRAM_IDS));
   pm.use(supportComposer(db, config.OWNER_TELEGRAM_IDS));
+  pm.use(myOrdersComposer(db, cipher));
 
   // Anything no handler took: say so, and show the way back, so the bot never looks dead.
   pm.on('message', async (ctx) => {

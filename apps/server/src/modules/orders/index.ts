@@ -16,7 +16,7 @@ import { recordAudit } from '../audit/index.js';
 import { lockCustomer } from '../customers/index.js';
 import { claimStock, countAvailable } from '../stock/index.js';
 import { getBalance, recordLedgerEntry } from '../wallet/index.js';
-import { orders, subscriptions } from './schema.js';
+import { orders, pendingPurchases, subscriptions } from './schema.js';
 
 export type Order = typeof orders.$inferSelect;
 export type CustomerInput = Partial<Record<RequiredFieldName, string>>;
@@ -504,4 +504,80 @@ export async function countQueuedOrders(db: Db): Promise<number> {
     .from(orders)
     .where(eq(orders.status, 'queued'));
   return row?.n ?? 0;
+}
+
+// ── Pending purchase: continue after a top-up ──────────────────────────────────
+
+export interface PendingPurchase {
+  variantId: number;
+  quantity: number;
+  input: CustomerInput;
+}
+
+export async function savePendingPurchase(
+  db: Db,
+  cipher: Cipher,
+  customerId: number,
+  pending: PendingPurchase,
+): Promise<void> {
+  const values = {
+    variantId: pending.variantId,
+    quantity: pending.quantity,
+    inputEncrypted:
+      Object.keys(pending.input).length > 0 ? cipher.encrypt(JSON.stringify(pending.input)) : null,
+    createdAt: new Date(),
+  };
+  await db
+    .insert(pendingPurchases)
+    .values({ customerId, ...values })
+    .onConflictDoUpdate({ target: pendingPurchases.customerId, set: values });
+}
+
+export async function getPendingPurchase(
+  db: Db,
+  cipher: Cipher,
+  customerId: number,
+): Promise<PendingPurchase | undefined> {
+  const [row] = await db
+    .select()
+    .from(pendingPurchases)
+    .where(eq(pendingPurchases.customerId, customerId));
+  if (!row) return undefined;
+  return {
+    variantId: row.variantId,
+    quantity: row.quantity,
+    input: row.inputEncrypted
+      ? (JSON.parse(cipher.decrypt(row.inputEncrypted)) as CustomerInput)
+      : {},
+  };
+}
+
+/** The variant a customer was about to buy before topping up, if any. */
+export async function pendingPurchaseVariant(
+  db: Db,
+  customerId: number,
+): Promise<number | undefined> {
+  const [row] = await db
+    .select({ variantId: pendingPurchases.variantId })
+    .from(pendingPurchases)
+    .where(eq(pendingPurchases.customerId, customerId));
+  return row?.variantId;
+}
+
+export async function clearPendingPurchase(db: Db, customerId: number): Promise<void> {
+  await db.delete(pendingPurchases).where(eq(pendingPurchases.customerId, customerId));
+}
+
+/** One of the customer's own orders (undefined for someone else's). */
+export async function getCustomerOrder(
+  db: Db,
+  customerId: number,
+  orderId: number,
+): Promise<{ order: Order; subscription: Subscription | undefined } | undefined> {
+  const [row] = await db
+    .select({ order: orders, subscription: subscriptions })
+    .from(orders)
+    .leftJoin(subscriptions, eq(subscriptions.orderId, orders.id))
+    .where(and(eq(orders.id, orderId), eq(orders.customerId, customerId)));
+  return row ? { order: row.order, subscription: row.subscription ?? undefined } : undefined;
 }
