@@ -2,6 +2,8 @@
 
 How to take the bot from zero to production. The compose/Docker files referenced here are created in **Phase 5** of [`ROADMAP.md`](ROADMAP.md); until then this is the plan. Keep this file in sync with them.
 
+Step-by-step walkthrough for the owners (Persian): [`docs/DEPLOY-GUIDE.fa.md`](docs/DEPLOY-GUIDE.fa.md).
+
 Why the server must be outside Iran: [ADR-0002](docs/adr/0002-vps-outside-iran.md).
 
 ## 1. Things to obtain
